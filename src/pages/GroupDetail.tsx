@@ -21,6 +21,7 @@ export default function GroupDetail() {
   const [owner, setOwner] = useState<User | null>(null)
   const [members, setMembers] = useState<User[]>([])
   const [requests, setRequests] = useState<JoinRequest[]>([])
+  const [requesters, setRequesters] = useState<User[]>([])
   const [myRequest, setMyRequest] = useState<JoinRequest | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -40,6 +41,14 @@ export default function GroupDetail() {
     setMembers(m)
     setRequests(reqs)
     setMyRequest(reqs.find((r) => r.userId === currentUser.id && r.status === 'pending') ?? null)
+
+    // Fetch requester user details for pending requests
+    const pendingReqs = reqs.filter((r) => r.status === 'pending')
+    const requesterUsers = await Promise.all(
+      pendingReqs.map((r) => mailGroupService.getUser(r.userId))
+    )
+    setRequesters(requesterUsers.filter((u): u is User => u !== null))
+
     setLoading(false)
   }
 
@@ -170,7 +179,7 @@ export default function GroupDetail() {
           <List
             dataSource={pendingRequests}
             renderItem={(req) => {
-              const requester = members.find((m) => m.id === req.userId) ??
+              const requester = requesters.find((u) => u.id === req.userId) ??
                 { displayName: req.userId, id: req.userId, mail: '' }
               return (
                 <List.Item
