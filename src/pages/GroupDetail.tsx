@@ -29,57 +29,77 @@ export default function GroupDetail() {
   const load = async () => {
     if (!id) return
     setLoading(true)
-    const g = await mailGroupService.getGroup(id)
-    if (!g) { message.error('Рассылка не найдена'); navigate('/groups'); return }
-    setGroup(g)
-    const [o, m, reqs] = await Promise.all([
-      mailGroupService.getUser(g.ownerId),
-      mailGroupService.getGroupMembers(id),
-      mailGroupService.getJoinRequests(id),
-    ])
-    setOwner(o)
-    setMembers(m)
-    setRequests(reqs)
-    setMyRequest(reqs.find((r) => r.userId === currentUser.id && r.status === 'pending') ?? null)
-
-    // Fetch requester user details for pending requests
-    const pendingReqs = reqs.filter((r) => r.status === 'pending')
-    const requesterUsers = await Promise.all(
-      pendingReqs.map((r) => mailGroupService.getUser(r.userId))
-    )
-    setRequesters(requesterUsers.filter((u): u is User => u !== null))
-
-    setLoading(false)
+    try {
+      const g = await mailGroupService.getGroup(id)
+      if (!g) { message.error('Рассылка не найдена'); navigate('/groups'); return }
+      setGroup(g)
+      const [o, m, reqs] = await Promise.all([
+        mailGroupService.getUser(g.ownerId),
+        mailGroupService.getGroupMembers(id),
+        mailGroupService.getJoinRequests(id),
+      ])
+      const pendingReqs = reqs.filter((r) => r.status === 'pending')
+      const requesterUsers = await Promise.all(
+        pendingReqs.map((r) => mailGroupService.getUser(r.userId))
+      )
+      setOwner(o)
+      setMembers(m)
+      setRequests(reqs)
+      setRequesters(requesterUsers.filter((u): u is User => u !== null))
+      setMyRequest(reqs.find((r) => r.userId === currentUser.id && r.status === 'pending') ?? null)
+    } catch {
+      message.error('Ошибка загрузки данных')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  useEffect(() => { load() }, [id])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load() }, [id, currentUser.id])
 
   const handleJoinRequest = async () => {
     if (!group) return
     setSubmitting(true)
-    const req = await mailGroupService.submitJoinRequest(group.id, currentUser.id)
-    setMyRequest(req)
-    message.success('Заявка отправлена — ожидайте подтверждения владельца')
-    setSubmitting(false)
+    try {
+      const req = await mailGroupService.submitJoinRequest(group.id, currentUser.id)
+      setMyRequest(req)
+      message.success('Заявка отправлена — ожидайте подтверждения владельца')
+    } catch {
+      message.error('Не удалось отправить заявку')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const handleApprove = async (requestId: string) => {
-    await mailGroupService.approveJoinRequest(requestId)
-    message.success('Заявка одобрена')
-    load()
+    try {
+      await mailGroupService.approveJoinRequest(requestId)
+      message.success('Заявка одобрена')
+      load()
+    } catch {
+      message.error('Ошибка при одобрении заявки')
+    }
   }
 
   const handleReject = async (requestId: string) => {
-    await mailGroupService.rejectJoinRequest(requestId)
-    message.success('Заявка отклонена')
-    load()
+    try {
+      await mailGroupService.rejectJoinRequest(requestId)
+      message.success('Заявка отклонена')
+      load()
+    } catch {
+      message.error('Ошибка при отклонении заявки')
+    }
   }
 
   const handleDelete = async () => {
     if (!group) return
-    await mailGroupService.deleteGroup(group.id)
-    message.success('Рассылка удалена')
-    navigate('/groups')
+    try {
+      await mailGroupService.deleteGroup(group.id)
+      message.success('Рассылка удалена')
+      navigate('/groups')
+    } catch {
+      message.error('Не удалось удалить рассылку')
+    }
   }
 
   if (loading) return <Spin size="large" style={{ display: 'block', marginTop: 80, textAlign: 'center' }} />
