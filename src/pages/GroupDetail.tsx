@@ -72,22 +72,28 @@ export default function GroupDetail() {
   }
 
   const handleApprove = async (requestId: string) => {
+    setSubmitting(true)
     try {
       await mailGroupService.approveJoinRequest(requestId)
       message.success('Заявка одобрена')
       load()
     } catch {
       message.error('Ошибка при одобрении заявки')
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const handleReject = async (requestId: string) => {
+    setSubmitting(true)
     try {
       await mailGroupService.rejectJoinRequest(requestId)
       message.success('Заявка отклонена')
       load()
     } catch {
       message.error('Ошибка при отклонении заявки')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -209,6 +215,7 @@ export default function GroupDetail() {
                       type="primary"
                       size="small"
                       icon={<CheckOutlined />}
+                      loading={submitting}
                       onClick={() => handleApprove(req.id)}
                     >
                       Одобрить
@@ -218,6 +225,7 @@ export default function GroupDetail() {
                       danger
                       size="small"
                       icon={<CloseOutlined />}
+                      loading={submitting}
                       onClick={() => handleReject(req.id)}
                     >
                       Отклонить
