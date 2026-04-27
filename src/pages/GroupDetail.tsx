@@ -13,6 +13,7 @@ import { mailGroupService } from '../services'
 import { useCurrentUser } from '../context/CurrentUserContext'
 import EditGroupModal from '../components/EditGroupModal'
 import AddMembersModal from '../components/AddMembersModal'
+import { colors } from '../theme'
 
 export default function GroupDetail() {
   const { id } = useParams<{ id: string }>()
@@ -137,20 +138,25 @@ export default function GroupDetail() {
       </Space>
 
       {/* Main card */}
-      <Card style={{ borderRadius: 12, marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <Space align="center" style={{ marginBottom: 6 }}>
-              <Typography.Title level={3} style={{ margin: 0 }}>{group.displayName}</Typography.Title>
+      <Card className="flat-card" style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+          <div style={{ minWidth: 0 }}>
+            <Space align="center" style={{ marginBottom: 8, flexWrap: 'wrap' }}>
+              <Typography.Title
+                level={3}
+                style={{ margin: 0, fontWeight: 600, color: colors.text, letterSpacing: '-0.01em' }}
+              >
+                {group.displayName}
+              </Typography.Title>
               {group.visibility === 'Private' && <Tag icon={<LockOutlined />}>Private</Tag>}
               {group.type === 'dynamic' && <Tag color="blue">Dynamic</Tag>}
               {group.hideFromAddressLists && <Tag icon={<EyeInvisibleOutlined />} color="orange">Hidden from GAL</Tag>}
             </Space>
-            <Typography.Text type="secondary">
-              <MailOutlined style={{ marginRight: 6 }} />{group.mail}
+            <Typography.Text className="mono" style={{ color: colors.textMuted, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <MailOutlined />{group.mail}
             </Typography.Text>
             {group.description && (
-              <Typography.Paragraph style={{ marginTop: 8, marginBottom: 0, color: '#555' }}>
+              <Typography.Paragraph style={{ marginTop: 12, marginBottom: 0, color: colors.textMuted }}>
                 {group.description}
               </Typography.Paragraph>
             )}
@@ -190,7 +196,7 @@ export default function GroupDetail() {
           {owner && (
             <Descriptions.Item label="Owner">
               <Space>
-                <Avatar size={20} style={{ background: '#0078D4', fontSize: 11 }}>
+                <Avatar size={22} style={{ fontSize: 11 }}>
                   {owner.displayName.slice(0, 1)}
                 </Avatar>
                 {owner.displayName}
@@ -219,8 +225,9 @@ export default function GroupDetail() {
       {/* Pending requests — только для владельца */}
       {isOwner && pendingRequests.length > 0 && (
         <Card
-          title={<Space><span>Join requests</span><Badge count={pendingRequests.length} color="#0078D4" /></Space>}
-          style={{ borderRadius: 12, marginBottom: 16 }}
+          className="flat-card"
+          title={<Space><span>Join requests</span><Badge count={pendingRequests.length} color={colors.primary} /></Space>}
+          style={{ marginBottom: 20 }}
         >
           <List
             dataSource={pendingRequests}
@@ -253,7 +260,7 @@ export default function GroupDetail() {
                   ]}
                 >
                   <List.Item.Meta
-                    avatar={<Avatar icon={<UserOutlined />} style={{ background: '#0078D4' }} />}
+                    avatar={<Avatar icon={<UserOutlined />} />}
                     title={requester.displayName}
                     description={req.message ?? 'No message'}
                   />
@@ -266,8 +273,8 @@ export default function GroupDetail() {
 
       {/* Members list */}
       <Card
+        className="flat-card"
         title={`Members (${members.length})`}
-        style={{ borderRadius: 12 }}
         extra={
           isOwner && (
             <Button type="primary" icon={<UserAddOutlined />} onClick={() => setAddOpen(true)}>
@@ -299,14 +306,14 @@ export default function GroupDetail() {
               >
                 <List.Item.Meta
                   avatar={
-                    <Avatar style={{ background: '#0078D4' }}>
+                    <Avatar>
                       {u.displayName.slice(0, 1)}
                     </Avatar>
                   }
                   title={u.displayName}
                   description={
                     <Space>
-                      <span>{u.mail}</span>
+                      <span className="mono">{u.mail}</span>
                       {u.id === group.ownerId && <Tag color="blue">Owner</Tag>}
                     </Space>
                   }

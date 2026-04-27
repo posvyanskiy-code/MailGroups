@@ -9,6 +9,7 @@ import type { CreateGroupInput } from '../types'
 import { mailGroupService } from '../services'
 import { useCurrentUser } from '../context/CurrentUserContext'
 import MetaTagsInput from '../components/MetaTagsInput'
+import { colors } from '../theme'
 
 const BUSINESS_LINES = ['SME', 'Car Loan', 'Retail', 'Marketing', 'IT', 'Legal', 'Finance', 'HR']
 
@@ -53,10 +54,15 @@ export default function GroupCreate() {
     <div style={{ maxWidth: 680 }}>
       <Space style={{ marginBottom: 24 }}>
         <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/groups')}>Back</Button>
-        <Typography.Title level={3} style={{ margin: 0 }}>Create group</Typography.Title>
+        <Typography.Title
+          level={3}
+          style={{ margin: 0, fontWeight: 600, color: colors.text, letterSpacing: '-0.01em' }}
+        >
+          Create group
+        </Typography.Title>
       </Space>
 
-      <Card style={{ borderRadius: 12 }}>
+      <Card className="flat-card">
         <Form
           form={form}
           layout="vertical"

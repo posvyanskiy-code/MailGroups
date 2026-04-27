@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom'
 import type { MailGroup, User } from '../types'
 import { mailGroupService } from '../services'
 import { useCurrentUser } from '../context/CurrentUserContext'
+import { colors } from '../theme'
 
 type TabKey = 'all' | 'subscriptions' | 'mine' | 'dynamic'
 type SortDir = 'asc' | 'desc'
@@ -86,10 +87,10 @@ export default function GroupList() {
   )
 
   const tabItems = [
-    { key: 'all', label: <span>All <Tag style={{ marginLeft: 4, fontWeight: 600 }}>{counts.all}</Tag></span> },
-    { key: 'subscriptions', label: <span>My subscriptions <Tag style={{ marginLeft: 4 }}>{counts.subscriptions}</Tag></span> },
-    { key: 'mine', label: <span>My groups <Tag style={{ marginLeft: 4 }}>{counts.mine}</Tag></span> },
-    { key: 'dynamic', label: <span>Dynamic groups <Tag style={{ marginLeft: 4 }}>{counts.dynamic}</Tag></span> },
+    { key: 'all', label: <span>All <Tag style={{ marginLeft: 6 }}>{counts.all}</Tag></span> },
+    { key: 'subscriptions', label: <span>My subscriptions <Tag style={{ marginLeft: 6 }}>{counts.subscriptions}</Tag></span> },
+    { key: 'mine', label: <span>My groups <Tag style={{ marginLeft: 6 }}>{counts.mine}</Tag></span> },
+    { key: 'dynamic', label: <span>Dynamic groups <Tag style={{ marginLeft: 6 }}>{counts.dynamic}</Tag></span> },
   ]
 
   if (loading) {
@@ -99,14 +100,18 @@ export default function GroupList() {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <Typography.Title level={2} style={{ margin: 0 }}>Mail groups</Typography.Title>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
+        <Typography.Title
+          level={2}
+          style={{ margin: 0, fontWeight: 600, color: colors.text, letterSpacing: '-0.02em' }}
+        >
+          Mail groups
+        </Typography.Title>
         <Button
           type="primary"
           size="large"
           icon={<PlusOutlined />}
           onClick={() => navigate('/groups/new')}
-          style={{ borderRadius: 8 }}
         >
           Create group
         </Button>
@@ -115,17 +120,11 @@ export default function GroupList() {
       {/* Search */}
       <Input
         size="large"
-        prefix={<SearchOutlined style={{ color: '#bbb' }} />}
+        prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
         placeholder="Search by group name"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        style={{
-          marginBottom: 24,
-          borderRadius: 10,
-          background: '#f5f7fa',
-          border: 'none',
-          boxShadow: 'none',
-        }}
+        style={{ marginBottom: 28 }}
         allowClear
       />
 
@@ -134,15 +133,15 @@ export default function GroupList() {
         activeKey={tab}
         onChange={(k) => setTab(k as TabKey)}
         items={tabItems}
-        style={{ marginBottom: 16 }}
+        style={{ marginBottom: 20 }}
       />
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 28, alignItems: 'center', flexWrap: 'wrap' }}>
         <Select
           placeholder="Business line"
           allowClear
-          style={{ minWidth: 160 }}
+          style={{ minWidth: 170 }}
           value={filterBL}
           onChange={(v) => setFilterBL(v ?? null)}
           options={businessLines.map((bl) => ({ label: bl, value: bl }))}
@@ -150,7 +149,7 @@ export default function GroupList() {
         <Select
           placeholder="Owner"
           allowClear
-          style={{ minWidth: 160 }}
+          style={{ minWidth: 170 }}
           value={filterOwner}
           onChange={(v) => setFilterOwner(v ?? null)}
           options={users.map((u) => ({ label: u.displayName, value: u.id }))}
@@ -158,7 +157,7 @@ export default function GroupList() {
         <Select
           placeholder="Tags"
           allowClear
-          style={{ minWidth: 140 }}
+          style={{ minWidth: 150 }}
           value={filterTag}
           onChange={(v) => setFilterTag(v ?? null)}
           options={allTags.map((t) => ({ label: t, value: t }))}
@@ -168,7 +167,7 @@ export default function GroupList() {
             type="text"
             icon={sortDir === 'desc' ? <ArrowDownOutlined /> : <ArrowUpOutlined />}
             onClick={() => setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))}
-            style={{ color: '#0078D4' }}
+            style={{ color: colors.primary }}
           >
             Date {sortDir === 'desc' ? 'descending' : 'ascending'}
           </Button>
@@ -187,43 +186,47 @@ export default function GroupList() {
               <Card
                 key={group.id}
                 hoverable
+                className="flat-card"
                 onClick={() => navigate(`/groups/${group.id}`)}
-                style={{ borderRadius: 12, border: '1px solid #e8edf3', background: '#fff', cursor: 'pointer' }}
-                styles={{ body: { padding: '16px 20px' } }}
+                style={{ cursor: 'pointer' }}
+                styles={{ body: { padding: '20px 24px' } }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ marginBottom: 8 }}>
+                    <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                       <Typography.Text
-                        style={{ fontSize: 16, fontWeight: 600, color: '#0078D4' }}
+                        style={{ fontSize: 16, fontWeight: 600, color: colors.text }}
                       >
                         {group.displayName}
                       </Typography.Text>
                       {group.visibility === 'Private' && (
-                        <Tag color="default" style={{ marginLeft: 8, fontSize: 11 }}>Private</Tag>
+                        <Tag style={{ fontSize: 11 }}>Private</Tag>
                       )}
                       {group.type === 'dynamic' && (
-                        <Tag color="blue" style={{ marginLeft: 4, fontSize: 11 }}>Dynamic</Tag>
+                        <Tag color="blue" style={{ fontSize: 11 }}>Dynamic</Tag>
                       )}
                     </div>
+                    <Typography.Text className="mono" style={{ color: colors.textMuted, display: 'block', marginBottom: 12 }}>
+                      {group.mail}
+                    </Typography.Text>
                     <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
                       {owner && (
                         <div>
-                          <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>
+                          <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             Owner
                           </Typography.Text>
-                          <Space size={6}>
-                            <Avatar size={24} style={{ background: '#0078D4', fontSize: 11 }} icon={<UserOutlined />} />
+                          <Space size={8}>
+                            <Avatar size={24} style={{ fontSize: 11 }} icon={<UserOutlined />} />
                             <Typography.Text style={{ fontSize: 13 }}>{owner.displayName}</Typography.Text>
                           </Space>
                         </div>
                       )}
                       {group.businessLine && (
                         <div>
-                          <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>
+                          <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             Business line
                           </Typography.Text>
-                          <Tag style={{ fontSize: 13 }}>{group.businessLine}</Tag>
+                          <Tag style={{ fontSize: 12 }}>{group.businessLine}</Tag>
                         </div>
                       )}
                     </div>
@@ -233,14 +236,12 @@ export default function GroupList() {
                     onClick={(e) => e.stopPropagation()}
                   >
                     {!isMember && (
-                      <Button onClick={() => navigate(`/groups/${group.id}`)} style={{ borderRadius: 6 }}>
+                      <Button onClick={() => navigate(`/groups/${group.id}`)}>
                         Request to join
                       </Button>
                     )}
                     {isMember && (
-                      <Tag color="success" style={{ borderRadius: 6, padding: '2px 10px', margin: 0 }}>
-                        Member
-                      </Tag>
+                      <Tag color="success">Member</Tag>
                     )}
                     <Dropdown
                       menu={{

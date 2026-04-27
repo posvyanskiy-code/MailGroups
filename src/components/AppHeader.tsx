@@ -1,16 +1,17 @@
 import { Avatar, Typography } from 'antd'
 import { MailOutlined } from '@ant-design/icons'
 import { useCurrentUser } from '../context/CurrentUserContext'
+import { colors } from '../theme'
 
 export default function AppHeader() {
   const user = useCurrentUser()
 
   return (
     <header style={{
-      background: '#fff',
-      borderBottom: '1px solid #e8edf3',
+      background: colors.surfaceRaised,
+      borderBottom: `1px solid ${colors.border}`,
       padding: '0 32px',
-      height: 56,
+      height: 60,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -19,19 +20,16 @@ export default function AppHeader() {
       zIndex: 100,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <MailOutlined style={{ fontSize: 22, color: '#0078D4' }} />
-        <Typography.Text strong style={{ fontSize: 16, color: '#0078D4' }}>
+        <MailOutlined style={{ fontSize: 20, color: colors.primary }} />
+        <Typography.Text strong style={{ fontSize: 16, color: colors.text, letterSpacing: '-0.01em' }}>
           Mail Groups
         </Typography.Text>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <Typography.Text type="secondary" style={{ fontSize: 13, color: colors.textMuted }}>
           {user.displayName}
         </Typography.Text>
-        <Avatar
-          size={32}
-          style={{ background: '#0078D4', fontSize: 13, cursor: 'default' }}
-        >
+        <Avatar size={32} style={{ fontSize: 13, cursor: 'default' }}>
           {user.displayName.slice(0, 1)}
         </Avatar>
       </div>
