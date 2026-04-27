@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{E3FA5BA6-5A26-4037-AA24-3B9996634732}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MailGroups.Api", "src\MailGroups.Api\MailGroups.Api.csproj", "{6FCFB6DA-3AA4-49D1-83A1-A03CBC8F9A52}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{2E0BB5EF-7995-45A5-91F1-0801A3C63F94}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MailGroups.Api.Tests", "tests\MailGroups.Api.Tests\MailGroups.Api.Tests.csproj", "{EA66F219-396B-4574-859A-887424897B25}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6FCFB6DA-3AA4-49D1-83A1-A03CBC8F9A52}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6FCFB6DA-3AA4-49D1-83A1-A03CBC8F9A52}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6FCFB6DA-3AA4-49D1-83A1-A03CBC8F9A52}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6FCFB6DA-3AA4-49D1-83A1-A03CBC8F9A52}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EA66F219-396B-4574-859A-887424897B25}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EA66F219-396B-4574-859A-887424897B25}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EA66F219-396B-4574-859A-887424897B25}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EA66F219-396B-4574-859A-887424897B25}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{6FCFB6DA-3AA4-49D1-83A1-A03CBC8F9A52} = {E3FA5BA6-5A26-4037-AA24-3B9996634732}
+		{EA66F219-396B-4574-859A-887424897B25} = {2E0BB5EF-7995-45A5-91F1-0801A3C63F94}
+	EndGlobalSection
+EndGlobal

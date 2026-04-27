@@ -1,0 +1,6 @@
+@MailGroups.Api_HostAddress = http://localhost:5150
+
+GET {{MailGroups.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
