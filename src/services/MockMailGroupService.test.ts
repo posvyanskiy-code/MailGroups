@@ -21,9 +21,9 @@ describe('MockMailGroupService', () => {
     svc = new MockMailGroupService()
   })
 
-  it('returns seeded groups on first load', async () => {
+  it('returns empty list on first load', async () => {
     const groups = await svc.getGroups()
-    expect(groups.length).toBeGreaterThan(0)
+    expect(groups).toEqual([])
   })
 
   it('creates a group and returns it with generated mail', async () => {
@@ -58,8 +58,10 @@ describe('MockMailGroupService', () => {
   })
 
   it('submitJoinRequest creates a pending request', async () => {
-    const groups = await svc.getGroups()
-    const group = groups[0]
+    const group = await svc.createGroup(
+      { displayName: 'G', mailNickname: 'g', tags: [], type: 'regular', visibility: 'Public', hideFromAddressLists: false },
+      'user-1',
+    )
     const req = await svc.submitJoinRequest(group.id, 'user-99')
     expect(req.status).toBe('pending')
     expect(req.groupId).toBe(group.id)
@@ -67,8 +69,10 @@ describe('MockMailGroupService', () => {
   })
 
   it('approveJoinRequest adds user to members', async () => {
-    const groups = await svc.getGroups()
-    const group = groups[0]
+    const group = await svc.createGroup(
+      { displayName: 'G', mailNickname: 'g', tags: [], type: 'regular', visibility: 'Public', hideFromAddressLists: false },
+      'user-1',
+    )
     const req = await svc.submitJoinRequest(group.id, 'user-99')
     await svc.approveJoinRequest(req.id)
     const members = await svc.getGroupMembers(group.id)

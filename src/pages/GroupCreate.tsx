@@ -42,7 +42,7 @@ export default function GroupCreate() {
         hideFromAddressLists: values.hideFromAddressLists as boolean,
       }
       const group = await mailGroupService.createGroup(input, currentUser.id)
-      message.success(`Рассылка «${group.displayName}» создана — ${group.mail}`)
+      message.success(`Group "${group.displayName}" created — ${group.mail}`)
       navigate(`/groups/${group.id}`)
     } finally {
       setLoading(false)
@@ -52,8 +52,8 @@ export default function GroupCreate() {
   return (
     <div style={{ maxWidth: 680 }}>
       <Space style={{ marginBottom: 24 }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/groups')}>Назад</Button>
-        <Typography.Title level={3} style={{ margin: 0 }}>Создать рассылку</Typography.Title>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/groups')}>Back</Button>
+        <Typography.Title level={3} style={{ margin: 0 }}>Create group</Typography.Title>
       </Space>
 
       <Card style={{ borderRadius: 12 }}>
@@ -64,64 +64,64 @@ export default function GroupCreate() {
           onFinish={handleSubmit}
         >
           <Form.Item
-            label="Название рассылки"
+            label="Group name"
             name="displayName"
-            rules={[{ required: true, message: 'Укажите название' }]}
+            rules={[{ required: true, message: 'Please enter a name' }]}
           >
             <Input
-              placeholder="Проектное финансирование 214-ФЗ"
+              placeholder="Project Finance 214-FZ"
               onChange={handleNameChange}
             />
           </Form.Item>
 
           <Form.Item
-            label="Адрес рассылки"
+            label="Group address"
             name="mailNickname"
             rules={[
-              { required: true, message: 'Укажите адрес' },
-              { pattern: /^[a-z0-9-]+$/, message: 'Только латинские буквы, цифры и дефис' },
+              { required: true, message: 'Please enter an address' },
+              { pattern: /^[a-z0-9-]+$/, message: 'Only latin letters, digits and dashes' },
             ]}
             extra={
               <span style={{ color: '#888', fontSize: 12 }}>
-                @company.com — адрес будет зарегистрирован в Microsoft
+                @company.com — address will be registered in Microsoft
               </span>
             }
           >
             <Input placeholder="pf-214-fz" addonAfter="@company.com" />
           </Form.Item>
 
-          <Form.Item label="Описание" name="description">
-            <Input.TextArea rows={2} placeholder="Краткое описание рассылки" />
+          <Form.Item label="Description" name="description">
+            <Input.TextArea rows={2} placeholder="Short group description" />
           </Form.Item>
 
-          <Form.Item label="Бизнес-линия" name="businessLine">
+          <Form.Item label="Business line" name="businessLine">
             <Select
-              placeholder="Выберите бизнес-линию"
+              placeholder="Select a business line"
               allowClear
               options={BUSINESS_LINES.map((bl) => ({ label: bl, value: bl }))}
             />
           </Form.Item>
 
-          <Form.Item label="Тэги">
+          <Form.Item label="Tags">
             <MetaTagsInput value={tags} onChange={setTags} />
           </Form.Item>
 
-          <Form.Item label="Тип рассылки" name="type">
+          <Form.Item label="Group type" name="type">
             <Radio.Group>
-              <Radio value="regular">Обычная</Radio>
-              <Radio value="dynamic">Динамическая (членство по правилу)</Radio>
+              <Radio value="regular">Regular</Radio>
+              <Radio value="dynamic">Dynamic (rule-based membership)</Radio>
             </Radio.Group>
           </Form.Item>
 
-          <Form.Item label="Видимость" name="visibility">
+          <Form.Item label="Visibility" name="visibility">
             <Radio.Group>
-              <Radio value="Public">Общая — видна всем</Radio>
-              <Radio value="Private">Скрытая — только по приглашению</Radio>
+              <Radio value="Public">Public — visible to everyone</Radio>
+              <Radio value="Private">Private — invitation only</Radio>
             </Radio.Group>
           </Form.Item>
 
           <Form.Item
-            label="Скрыть из глобального адресника Microsoft"
+            label="Hide from Microsoft global address list"
             name="hideFromAddressLists"
             valuePropName="checked"
           >
@@ -130,7 +130,7 @@ export default function GroupCreate() {
 
           <Form.Item style={{ marginBottom: 0 }}>
             <Button type="primary" htmlType="submit" size="large" loading={loading}>
-              Создать рассылку
+              Create group
             </Button>
           </Form.Item>
         </Form>

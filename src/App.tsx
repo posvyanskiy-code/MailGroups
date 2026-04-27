@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ConfigProvider } from 'antd'
-import ruRU from 'antd/locale/ru_RU'
+import enUS from 'antd/locale/en_US'
 import { CurrentUserProvider } from './context/CurrentUserContext'
 import AppHeader from './components/AppHeader'
 import GroupList from './pages/GroupList'
@@ -10,7 +10,7 @@ import GroupDetail from './pages/GroupDetail'
 export default function App() {
   return (
     <ConfigProvider
-      locale={ruRU}
+      locale={enUS}
       theme={{
         token: {
           colorPrimary: '#0078D4',

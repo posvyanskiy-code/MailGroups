@@ -1,72 +1,21 @@
 import type { IMailGroupService } from './IMailGroupService'
 import type { MailGroup, User, JoinRequest, CreateGroupInput } from '../types'
 
-const GROUPS_KEY = 'mg_groups'
-const REQUESTS_KEY = 'mg_requests'
-const USERS_KEY = 'mg_users'
+const GROUPS_KEY = 'mg_groups_v2'
+const REQUESTS_KEY = 'mg_requests_v2'
+const USERS_KEY = 'mg_users_v2'
 
 const DOMAIN = 'company.com'
 
 const SEED_USERS: User[] = [
-  { id: 'user-1', displayName: 'Текущий Пользователь', mail: 'current@company.com', jobTitle: 'Product Manager', department: 'Product' },
-  { id: 'user-2', displayName: 'Попова Анастасия', mail: 'popova@company.com', jobTitle: 'Head of SME', department: 'SME' },
-  { id: 'user-3', displayName: 'Шпигун Игорь', mail: 'shpigun@company.com', jobTitle: 'Analyst', department: 'Car Loan' },
-  { id: 'user-4', displayName: 'Козлов Дмитрий', mail: 'kozlov@company.com', jobTitle: 'Engineer', department: 'IT' },
-  { id: 'user-5', displayName: 'Смирнова Елена', mail: 'smirnova@company.com', jobTitle: 'Marketing Lead', department: 'Marketing' },
+  { id: 'user-1', displayName: 'Current User', mail: 'current@company.com', jobTitle: 'Product Manager', department: 'Product' },
+  { id: 'user-2', displayName: 'Anastasia Popova', mail: 'popova@company.com', jobTitle: 'Head of SME', department: 'SME' },
+  { id: 'user-3', displayName: 'Igor Shpigun', mail: 'shpigun@company.com', jobTitle: 'Analyst', department: 'Car Loan' },
+  { id: 'user-4', displayName: 'Dmitry Kozlov', mail: 'kozlov@company.com', jobTitle: 'Engineer', department: 'IT' },
+  { id: 'user-5', displayName: 'Elena Smirnova', mail: 'smirnova@company.com', jobTitle: 'Marketing Lead', department: 'Marketing' },
 ]
 
-const SEED_GROUPS: MailGroup[] = [
-  {
-    id: 'g-1', displayName: 'Проектное финансирование 214-ФЗ', mailNickname: 'pf-214-fz',
-    mail: 'pf-214-fz@company.com', description: 'Рассылка по проектному финансированию',
-    ownerId: 'user-2', businessLine: 'SME', tags: ['проекты', 'финансирование'],
-    type: 'regular', visibility: 'Public', hideFromAddressLists: false,
-    memberIds: ['user-2', 'user-3'], createdAt: '2025-11-01T09:00:00Z', updatedAt: '2025-11-01T09:00:00Z',
-  },
-  {
-    id: 'g-2', displayName: 'Отчет по справкам Директ', mailNickname: 'direct-reports',
-    mail: 'direct-reports@company.com', description: 'Еженедельные отчёты по Директ',
-    ownerId: 'user-3', businessLine: 'Car Loan', tags: ['отчёты', 'директ'],
-    type: 'regular', visibility: 'Public', hideFromAddressLists: false,
-    memberIds: ['user-3', 'user-4'], createdAt: '2025-10-15T10:00:00Z', updatedAt: '2025-10-15T10:00:00Z',
-  },
-  {
-    id: 'g-3', displayName: 'IT Infrastructure Updates', mailNickname: 'it-infra',
-    mail: 'it-infra@company.com', description: 'Обновления инфраструктуры',
-    ownerId: 'user-4', businessLine: 'IT', tags: ['IT', 'инфраструктура'],
-    type: 'regular', visibility: 'Public', hideFromAddressLists: false,
-    memberIds: ['user-1', 'user-4'], createdAt: '2025-09-20T08:00:00Z', updatedAt: '2025-09-20T08:00:00Z',
-  },
-  {
-    id: 'g-4', displayName: 'Marketing Newsletter', mailNickname: 'mktg-news',
-    mail: 'mktg-news@company.com',
-    ownerId: 'user-5', businessLine: 'Marketing', tags: ['маркетинг'],
-    type: 'regular', visibility: 'Private', hideFromAddressLists: false,
-    memberIds: ['user-5'], createdAt: '2025-08-10T11:00:00Z', updatedAt: '2025-08-10T11:00:00Z',
-  },
-  {
-    id: 'g-5', displayName: 'All Employees Dynamic', mailNickname: 'all-employees',
-    mail: 'all-employees@company.com', description: 'Динамическая рассылка — все сотрудники',
-    ownerId: 'user-4', businessLine: 'IT', tags: ['все'],
-    type: 'dynamic', visibility: 'Public', hideFromAddressLists: false,
-    memberIds: ['user-1', 'user-2', 'user-3', 'user-4', 'user-5'],
-    createdAt: '2025-07-01T00:00:00Z', updatedAt: '2025-07-01T00:00:00Z',
-  },
-  {
-    id: 'g-6', displayName: 'Розничный бизнес — анонсы', mailNickname: 'retail-announce',
-    mail: 'retail-announce@company.com',
-    ownerId: 'user-2', businessLine: 'Retail', tags: ['ритейл', 'анонсы'],
-    type: 'regular', visibility: 'Public', hideFromAddressLists: false,
-    memberIds: ['user-2'], createdAt: '2025-06-15T09:30:00Z', updatedAt: '2025-06-15T09:30:00Z',
-  },
-  {
-    id: 'g-7', displayName: 'Compliance & Legal', mailNickname: 'compliance',
-    mail: 'compliance@company.com', description: 'Скрытая рассылка юридического отдела',
-    ownerId: 'user-3', businessLine: 'Legal', tags: ['compliance', 'legal'],
-    type: 'regular', visibility: 'Private', hideFromAddressLists: true,
-    memberIds: ['user-3'], createdAt: '2025-05-20T14:00:00Z', updatedAt: '2025-05-20T14:00:00Z',
-  },
-]
+const SEED_GROUPS: MailGroup[] = []
 
 function loadArr<T>(key: string): T[] {
   const raw = localStorage.getItem(key)
@@ -154,6 +103,51 @@ export class MockMailGroupService implements IMailGroupService {
     return group.memberIds.map(
       (id) => userMap.get(id) ?? { id, displayName: id, mail: `${id}@${DOMAIN}` },
     )
+  }
+
+  async addMembers(groupId: string, userIds: string[]): Promise<MailGroup> {
+    const groups = await this.getGroups()
+    const idx = groups.findIndex((g) => g.id === groupId)
+    if (idx < 0) throw new Error(`Group ${groupId} not found`)
+    const existing = new Set(groups[idx].memberIds)
+    const merged = [...groups[idx].memberIds]
+    for (const id of userIds) {
+      if (!existing.has(id)) {
+        merged.push(id)
+        existing.add(id)
+      }
+    }
+    groups[idx] = { ...groups[idx], memberIds: merged, updatedAt: new Date().toISOString() }
+    saveArr(GROUPS_KEY, groups)
+    return groups[idx]
+  }
+
+  async removeMember(groupId: string, userId: string): Promise<MailGroup> {
+    const groups = await this.getGroups()
+    const idx = groups.findIndex((g) => g.id === groupId)
+    if (idx < 0) throw new Error(`Group ${groupId} not found`)
+    if (groups[idx].ownerId === userId) throw new Error('Cannot remove the group owner')
+    groups[idx] = {
+      ...groups[idx],
+      memberIds: groups[idx].memberIds.filter((id) => id !== userId),
+      updatedAt: new Date().toISOString(),
+    }
+    saveArr(GROUPS_KEY, groups)
+    return groups[idx]
+  }
+
+  async findOrCreateUserByEmail(email: string, displayName?: string): Promise<User> {
+    const normalized = email.trim().toLowerCase()
+    const users = await this.getUsers()
+    const existing = users.find((u) => u.mail.toLowerCase() === normalized)
+    if (existing) return existing
+    const user: User = {
+      id: crypto.randomUUID(),
+      displayName: displayName?.trim() || normalized.split('@')[0],
+      mail: normalized,
+    }
+    saveArr(USERS_KEY, [...users, user])
+    return user
   }
 
   async submitJoinRequest(groupId: string, userId: string, message?: string): Promise<JoinRequest> {

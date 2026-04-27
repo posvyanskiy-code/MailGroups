@@ -11,6 +11,9 @@ export interface IMailGroupService {
 
   // Members
   getGroupMembers(groupId: string): Promise<User[]>;
+  addMembers(groupId: string, userIds: string[]): Promise<MailGroup>;
+  removeMember(groupId: string, userId: string): Promise<MailGroup>;
+  findOrCreateUserByEmail(email: string, displayName?: string): Promise<User>;
 
   // Join requests
   submitJoinRequest(groupId: string, userId: string, message?: string): Promise<JoinRequest>;

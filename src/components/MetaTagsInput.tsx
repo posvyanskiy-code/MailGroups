@@ -31,7 +31,7 @@ export default function MetaTagsInput({ value, onChange }: Props) {
         onChange={(e) => setInput(e.target.value)}
         onPressEnter={add}
         onBlur={add}
-        placeholder="Добавить тэг..."
+        placeholder="Add tag..."
       />
     </div>
   )

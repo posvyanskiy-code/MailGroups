@@ -5,12 +5,14 @@ import {
 } from 'antd'
 import {
   ArrowLeftOutlined, UserOutlined, MailOutlined, LockOutlined, EyeInvisibleOutlined,
-  CheckOutlined, CloseOutlined,
+  CheckOutlined, CloseOutlined, EditOutlined, UserAddOutlined, DeleteOutlined,
 } from '@ant-design/icons'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { MailGroup, User, JoinRequest } from '../types'
 import { mailGroupService } from '../services'
 import { useCurrentUser } from '../context/CurrentUserContext'
+import EditGroupModal from '../components/EditGroupModal'
+import AddMembersModal from '../components/AddMembersModal'
 
 export default function GroupDetail() {
   const { id } = useParams<{ id: string }>()
@@ -25,13 +27,15 @@ export default function GroupDetail() {
   const [myRequest, setMyRequest] = useState<JoinRequest | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
 
   const load = async () => {
     if (!id) return
     setLoading(true)
     try {
       const g = await mailGroupService.getGroup(id)
-      if (!g) { message.error('Рассылка не найдена'); navigate('/groups'); return }
+      if (!g) { message.error('Group not found'); navigate('/groups'); return }
       setGroup(g)
       const [o, m, reqs] = await Promise.all([
         mailGroupService.getUser(g.ownerId),
@@ -48,7 +52,7 @@ export default function GroupDetail() {
       setRequesters(requesterUsers.filter((u): u is User => u !== null))
       setMyRequest(reqs.find((r) => r.userId === currentUser.id && r.status === 'pending') ?? null)
     } catch {
-      message.error('Ошибка загрузки данных')
+      message.error('Failed to load data')
     } finally {
       setLoading(false)
     }
@@ -63,9 +67,9 @@ export default function GroupDetail() {
     try {
       const req = await mailGroupService.submitJoinRequest(group.id, currentUser.id)
       setMyRequest(req)
-      message.success('Заявка отправлена — ожидайте подтверждения владельца')
+      message.success('Request submitted — awaiting owner approval')
     } catch {
-      message.error('Не удалось отправить заявку')
+      message.error('Failed to submit request')
     } finally {
       setSubmitting(false)
     }
@@ -75,10 +79,10 @@ export default function GroupDetail() {
     setSubmitting(true)
     try {
       await mailGroupService.approveJoinRequest(requestId)
-      message.success('Заявка одобрена')
+      message.success('Request approved')
       load()
     } catch {
-      message.error('Ошибка при одобрении заявки')
+      message.error('Failed to approve request')
     } finally {
       setSubmitting(false)
     }
@@ -88,10 +92,10 @@ export default function GroupDetail() {
     setSubmitting(true)
     try {
       await mailGroupService.rejectJoinRequest(requestId)
-      message.success('Заявка отклонена')
+      message.success('Request rejected')
       load()
     } catch {
-      message.error('Ошибка при отклонении заявки')
+      message.error('Failed to reject request')
     } finally {
       setSubmitting(false)
     }
@@ -101,10 +105,21 @@ export default function GroupDetail() {
     if (!group) return
     try {
       await mailGroupService.deleteGroup(group.id)
-      message.success('Рассылка удалена')
+      message.success('Group deleted')
       navigate('/groups')
     } catch {
-      message.error('Не удалось удалить рассылку')
+      message.error('Failed to delete group')
+    }
+  }
+
+  const handleRemoveMember = async (userId: string) => {
+    if (!group) return
+    try {
+      await mailGroupService.removeMember(group.id, userId)
+      message.success('Member removed')
+      load()
+    } catch {
+      message.error('Failed to remove member')
     }
   }
 
@@ -118,7 +133,7 @@ export default function GroupDetail() {
   return (
     <div style={{ maxWidth: 800 }}>
       <Space style={{ marginBottom: 24 }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/groups')}>Назад</Button>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/groups')}>Back</Button>
       </Space>
 
       {/* Main card */}
@@ -127,9 +142,9 @@ export default function GroupDetail() {
           <div>
             <Space align="center" style={{ marginBottom: 6 }}>
               <Typography.Title level={3} style={{ margin: 0 }}>{group.displayName}</Typography.Title>
-              {group.visibility === 'Private' && <Tag icon={<LockOutlined />}>Скрытая</Tag>}
-              {group.type === 'dynamic' && <Tag color="blue">Динамическая</Tag>}
-              {group.hideFromAddressLists && <Tag icon={<EyeInvisibleOutlined />} color="orange">Скрыта из GAL</Tag>}
+              {group.visibility === 'Private' && <Tag icon={<LockOutlined />}>Private</Tag>}
+              {group.type === 'dynamic' && <Tag color="blue">Dynamic</Tag>}
+              {group.hideFromAddressLists && <Tag icon={<EyeInvisibleOutlined />} color="orange">Hidden from GAL</Tag>}
             </Space>
             <Typography.Text type="secondary">
               <MailOutlined style={{ marginRight: 6 }} />{group.mail}
@@ -147,19 +162,24 @@ export default function GroupDetail() {
                 loading={submitting}
                 onClick={handleJoinRequest}
               >
-                Отправить заявку
+                Request to join
               </Button>
             )}
             {myRequest && (
-              <Tag color="processing" style={{ padding: '4px 12px' }}>Заявка на рассмотрении</Tag>
+              <Tag color="processing" style={{ padding: '4px 12px' }}>Request pending</Tag>
             )}
             {isMember && !isOwner && (
-              <Tag color="success" style={{ padding: '4px 12px' }}>Вы участник</Tag>
+              <Tag color="success" style={{ padding: '4px 12px' }}>You are a member</Tag>
             )}
             {isOwner && (
-              <Popconfirm title="Удалить рассылку?" onConfirm={handleDelete}>
-                <Button danger size="small">Удалить рассылку</Button>
-              </Popconfirm>
+              <Space>
+                <Button icon={<EditOutlined />} size="small" onClick={() => setEditOpen(true)}>
+                  Edit
+                </Button>
+                <Popconfirm title="Delete this group?" onConfirm={handleDelete}>
+                  <Button danger size="small">Delete</Button>
+                </Popconfirm>
+              </Space>
             )}
           </Space>
         </div>
@@ -168,7 +188,7 @@ export default function GroupDetail() {
 
         <Descriptions column={2} size="small">
           {owner && (
-            <Descriptions.Item label="Владелец">
+            <Descriptions.Item label="Owner">
               <Space>
                 <Avatar size={20} style={{ background: '#0078D4', fontSize: 11 }}>
                   {owner.displayName.slice(0, 1)}
@@ -178,16 +198,16 @@ export default function GroupDetail() {
             </Descriptions.Item>
           )}
           {group.businessLine && (
-            <Descriptions.Item label="Бизнес-линия">
+            <Descriptions.Item label="Business line">
               <Tag>{group.businessLine}</Tag>
             </Descriptions.Item>
           )}
-          <Descriptions.Item label="Участников">{group.memberIds.length}</Descriptions.Item>
-          <Descriptions.Item label="Создана">
-            {new Date(group.createdAt).toLocaleDateString('ru-RU')}
+          <Descriptions.Item label="Members">{group.memberIds.length}</Descriptions.Item>
+          <Descriptions.Item label="Created">
+            {new Date(group.createdAt).toLocaleDateString('en-US')}
           </Descriptions.Item>
           {group.tags.length > 0 && (
-            <Descriptions.Item label="Тэги" span={2}>
+            <Descriptions.Item label="Tags" span={2}>
               <Space wrap>
                 {group.tags.map((t) => <Tag key={t}>{t}</Tag>)}
               </Space>
@@ -199,7 +219,7 @@ export default function GroupDetail() {
       {/* Pending requests — только для владельца */}
       {isOwner && pendingRequests.length > 0 && (
         <Card
-          title={<Space><span>Заявки на вступление</span><Badge count={pendingRequests.length} color="#0078D4" /></Space>}
+          title={<Space><span>Join requests</span><Badge count={pendingRequests.length} color="#0078D4" /></Space>}
           style={{ borderRadius: 12, marginBottom: 16 }}
         >
           <List
@@ -218,7 +238,7 @@ export default function GroupDetail() {
                       loading={submitting}
                       onClick={() => handleApprove(req.id)}
                     >
-                      Одобрить
+                      Approve
                     </Button>,
                     <Button
                       key="reject"
@@ -228,14 +248,14 @@ export default function GroupDetail() {
                       loading={submitting}
                       onClick={() => handleReject(req.id)}
                     >
-                      Отклонить
+                      Reject
                     </Button>,
                   ]}
                 >
                   <List.Item.Meta
                     avatar={<Avatar icon={<UserOutlined />} style={{ background: '#0078D4' }} />}
                     title={requester.displayName}
-                    description={req.message ?? 'Без сообщения'}
+                    description={req.message ?? 'No message'}
                   />
                 </List.Item>
               )
@@ -245,14 +265,38 @@ export default function GroupDetail() {
       )}
 
       {/* Members list */}
-      <Card title={`Участники (${members.length})`} style={{ borderRadius: 12 }}>
+      <Card
+        title={`Members (${members.length})`}
+        style={{ borderRadius: 12 }}
+        extra={
+          isOwner && (
+            <Button type="primary" icon={<UserAddOutlined />} onClick={() => setAddOpen(true)}>
+              Add members
+            </Button>
+          )
+        }
+      >
         {members.length === 0 ? (
-          <Empty description="Нет участников" />
+          <Empty description="No members" />
         ) : (
           <List
             dataSource={members}
             renderItem={(u) => (
-              <List.Item>
+              <List.Item
+                actions={
+                  isOwner && u.id !== group.ownerId
+                    ? [
+                        <Popconfirm
+                          key="remove"
+                          title="Remove this member?"
+                          onConfirm={() => handleRemoveMember(u.id)}
+                        >
+                          <Button type="text" danger size="small" icon={<DeleteOutlined />} />
+                        </Popconfirm>,
+                      ]
+                    : undefined
+                }
+              >
                 <List.Item.Meta
                   avatar={
                     <Avatar style={{ background: '#0078D4' }}>
@@ -263,7 +307,7 @@ export default function GroupDetail() {
                   description={
                     <Space>
                       <span>{u.mail}</span>
-                      {u.id === group.ownerId && <Tag color="blue">Владелец</Tag>}
+                      {u.id === group.ownerId && <Tag color="blue">Owner</Tag>}
                     </Space>
                   }
                 />
@@ -272,6 +316,23 @@ export default function GroupDetail() {
           />
         )}
       </Card>
+
+      {isOwner && (
+        <>
+          <EditGroupModal
+            open={editOpen}
+            group={group}
+            onClose={() => setEditOpen(false)}
+            onSaved={(g) => setGroup(g)}
+          />
+          <AddMembersModal
+            open={addOpen}
+            group={group}
+            onClose={() => setAddOpen(false)}
+            onAdded={() => load()}
+          />
+        </>
+      )}
     </div>
   )
 }

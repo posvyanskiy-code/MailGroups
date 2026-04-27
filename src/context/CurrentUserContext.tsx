@@ -1,10 +1,9 @@
 import { createContext, useContext } from 'react'
 import type { User } from '../types'
 
-// Мок текущего пользователя — заменить на реальный SSO при интеграции
 const CURRENT_USER: User = {
   id: 'user-1',
-  displayName: 'Текущий Пользователь',
+  displayName: 'Current User',
   mail: 'current@company.com',
   jobTitle: 'Product Manager',
   department: 'Product',
