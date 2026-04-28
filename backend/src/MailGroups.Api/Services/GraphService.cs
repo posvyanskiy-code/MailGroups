@@ -38,6 +38,9 @@ public class GraphService(GraphServiceClient delegated, IConfiguration cfg) : IG
 
     public async Task<string> SendMailFromServiceAsync(string subject, string bodyHtml, IEnumerable<string> bccAddresses)
     {
+        if (cfg.GetValue("Demo:FakeSend", false))
+            return $"demo-{Guid.NewGuid()}";
+
         var appClient = GraphClientFactory.CreateAppOnly(cfg);
         var msg = new Message
         {

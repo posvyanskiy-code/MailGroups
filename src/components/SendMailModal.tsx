@@ -1,4 +1,4 @@
-import { Modal, Form, Input, message } from 'antd'
+import { Modal, Form, Input, Alert, message } from 'antd'
 import { mailGroupService } from '../services'
 
 interface Props {
@@ -32,6 +32,13 @@ export function SendMailModal({ open, groupId, onClose, onSent }: Props) {
       }}
       destroyOnHidden
     >
+      <Alert
+        type="info"
+        showIcon
+        style={{ marginTop: 16 }}
+        message="Demo mode"
+        description="The dev tenant has no Exchange mailbox, so emails are recorded in the journal but not actually delivered."
+      />
       <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
         <Form.Item name="subject" label="Subject" rules={[{ required: true }]}>
           <Input />
