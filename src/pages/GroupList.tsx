@@ -1,20 +1,12 @@
 import { useEffect, useState, useMemo } from 'react'
-import {
-  Typography, Button, Input, Tabs, Select, Space, Card, Avatar,
-  Tag, Dropdown, Spin, Empty,
-} from 'antd'
-import {
-  PlusOutlined, SearchOutlined, MoreOutlined, UserOutlined,
-  ArrowUpOutlined, ArrowDownOutlined,
-} from '@ant-design/icons'
+import { Button, Input, Spin } from 'antd'
 import { useNavigate } from 'react-router-dom'
-import type { MailGroup, User } from '../types'
+import type { MailGroup } from '../types'
 import { mailGroupService } from '../services'
 import { useCurrentUser } from '../context/CurrentUserContext'
-import { colors } from '../theme'
+import { colors, radii } from '../theme'
 
-type TabKey = 'all' | 'subscriptions' | 'mine' | 'dynamic'
-type SortDir = 'asc' | 'desc'
+type TabKey = 'all' | 'subscriptions' | 'mine'
 
 export default function GroupList() {
   const navigate = useNavigate()
@@ -22,24 +14,17 @@ export default function GroupList() {
   const currentUserId = currentUser?.id ?? ''
 
   const [groups, setGroups] = useState<MailGroup[]>([])
-  const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState<TabKey>('all')
-  const [filterBL, setFilterBL] = useState<string | null>(null)
-  const [filterOwner, setFilterOwner] = useState<string | null>(null)
-  const [filterTag, setFilterTag] = useState<string | null>(null)
-  const [sortDir, setSortDir] = useState<SortDir>('desc')
 
   const load = async () => {
     setLoading(true)
     try {
-      const [g, u] = await Promise.all([mailGroupService.getGroups(), mailGroupService.getUsers()])
+      const g = await mailGroupService.getGroups()
       setGroups(g)
-      setUsers(u)
     } catch {
       setGroups([])
-      setUsers([])
     } finally {
       setLoading(false)
     }
@@ -50,228 +35,195 @@ export default function GroupList() {
     load()
   }, [currentUserId])
 
-  const userMap = useMemo(() => new Map(users.map((u) => [u.id, u])), [users])
-
-  const businessLines = useMemo(
-    () => [...new Set(groups.map((g) => g.businessLine).filter(Boolean))] as string[],
-    [groups],
-  )
-  const allTags = useMemo(() => [...new Set(groups.flatMap((g) => g.tags))], [groups])
-
   const filtered = useMemo(() => {
     let list = groups
-
     if (tab === 'subscriptions') list = list.filter((g) => g.memberIds.includes(currentUserId))
     if (tab === 'mine') list = list.filter((g) => g.ownerIds.includes(currentUserId))
-    if (tab === 'dynamic') list = list.filter((g) => g.type === 'dynamic')
-
     if (search.trim()) {
       const q = search.toLowerCase()
       list = list.filter(
-        (g) =>
-          g.displayName.toLowerCase().includes(q) ||
-          g.mail.toLowerCase().includes(q) ||
-          g.description?.toLowerCase().includes(q) ||
-          g.tags.some((t) => t.toLowerCase().includes(q)),
+        (g) => g.displayName.toLowerCase().includes(q) ||
+               g.mail.toLowerCase().includes(q) ||
+               g.tags.some((t) => t.toLowerCase().includes(q))
       )
     }
+    return [...list].sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
+  }, [groups, tab, search, currentUserId])
 
-    if (filterBL) list = list.filter((g) => g.businessLine === filterBL)
-    if (filterOwner) list = list.filter((g) => g.ownerIds.includes(filterOwner))
-    if (filterTag) list = list.filter((g) => g.tags.includes(filterTag))
-
-    return [...list].sort((a, b) => {
-      const diff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      return sortDir === 'asc' ? diff : -diff
-    })
-  }, [groups, tab, search, filterBL, filterOwner, filterTag, sortDir, currentUserId])
-
-  const counts = useMemo(
-    () => ({
-      all: groups.length,
-      subscriptions: groups.filter((g) => g.memberIds.includes(currentUserId)).length,
-      mine: groups.filter((g) => g.ownerIds.includes(currentUserId)).length,
-      dynamic: groups.filter((g) => g.type === 'dynamic').length,
-    }),
-    [groups, currentUserId],
-  )
-
-  const tabItems = [
-    { key: 'all', label: <span>All <Tag style={{ marginLeft: 6 }}>{counts.all}</Tag></span> },
-    { key: 'subscriptions', label: <span>My subscriptions <Tag style={{ marginLeft: 6 }}>{counts.subscriptions}</Tag></span> },
-    { key: 'mine', label: <span>My groups <Tag style={{ marginLeft: 6 }}>{counts.mine}</Tag></span> },
-    { key: 'dynamic', label: <span>Dynamic groups <Tag style={{ marginLeft: 6 }}>{counts.dynamic}</Tag></span> },
-  ]
-
-  if (loading) {
-    return <Spin size="large" style={{ display: 'block', marginTop: 80, textAlign: 'center' }} />
-  }
+  const counts = useMemo(() => ({
+    all: groups.length,
+    subscriptions: groups.filter((g) => g.memberIds.includes(currentUserId)).length,
+    mine: groups.filter((g) => g.ownerIds.includes(currentUserId)).length,
+  }), [groups, currentUserId])
 
   return (
     <div>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
-        <Typography.Title
-          level={2}
-          style={{ margin: 0, fontWeight: 600, color: colors.text, letterSpacing: '-0.02em' }}
-        >
-          Mail groups
-        </Typography.Title>
-        <Button
-          type="primary"
-          size="large"
-          icon={<PlusOutlined />}
-          onClick={() => navigate('/groups/new')}
-        >
-          Create group
+      {/* Page header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 40 }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', color: colors.text }}>
+            Groups
+          </h1>
+          <p style={{ margin: '6px 0 0', fontSize: 14, color: colors.textMuted }}>
+            Manage corporate mail distribution groups.
+          </p>
+        </div>
+        <Button type="primary" onClick={() => navigate('/groups/new')}>
+          New group
         </Button>
       </div>
 
-      {/* Search */}
-      <Input
-        size="large"
-        prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
-        placeholder="Search by group name"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        style={{ marginBottom: 28 }}
-        allowClear
-      />
-
-      {/* Tabs */}
-      <Tabs
-        activeKey={tab}
-        onChange={(k) => setTab(k as TabKey)}
-        items={tabItems}
-        style={{ marginBottom: 20 }}
-      />
-
-      {/* Filters */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 28, alignItems: 'center', flexWrap: 'wrap' }}>
-        <Select
-          placeholder="Business line"
-          allowClear
-          style={{ minWidth: 170 }}
-          value={filterBL}
-          onChange={(v) => setFilterBL(v ?? null)}
-          options={businessLines.map((bl) => ({ label: bl, value: bl }))}
-        />
-        <Select
-          placeholder="Owner"
-          allowClear
-          style={{ minWidth: 170 }}
-          value={filterOwner}
-          onChange={(v) => setFilterOwner(v ?? null)}
-          options={users.map((u) => ({ label: u.displayName, value: u.id }))}
-        />
-        <Select
-          placeholder="Tags"
-          allowClear
-          style={{ minWidth: 150 }}
-          value={filterTag}
-          onChange={(v) => setFilterTag(v ?? null)}
-          options={allTags.map((t) => ({ label: t, value: t }))}
-        />
-        <div style={{ marginLeft: 'auto' }}>
-          <Button
-            type="text"
-            icon={sortDir === 'desc' ? <ArrowDownOutlined /> : <ArrowUpOutlined />}
-            onClick={() => setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))}
-            style={{ color: colors.primary }}
-          >
-            Date {sortDir === 'desc' ? 'descending' : 'ascending'}
-          </Button>
+      {/* Toolbar: tabs + search */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 16, marginBottom: 24, flexWrap: 'wrap',
+      }}>
+        <div style={{ display: 'flex', gap: 24 }}>
+          <TabLink active={tab === 'all'} onClick={() => setTab('all')} label="All" count={counts.all} />
+          <TabLink active={tab === 'mine'} onClick={() => setTab('mine')} label="My groups" count={counts.mine} />
+          <TabLink active={tab === 'subscriptions'} onClick={() => setTab('subscriptions')} label="Subscribed" count={counts.subscriptions} />
         </div>
+        <Input
+          placeholder="Search groups…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ width: 260 }}
+          allowClear
+        />
       </div>
 
-      {/* Group cards */}
-      {filtered.length === 0 ? (
-        <Empty description="No groups found" />
-      ) : (
-        <Space direction="vertical" style={{ width: '100%' }} size={12}>
-          {filtered.map((group) => {
-            const owner = userMap.get(group.ownerIds[0] ?? '')
-            const isMember = group.memberIds.includes(currentUserId)
-            return (
-              <Card
-                key={group.id}
-                hoverable
-                className="flat-card"
-                onClick={() => navigate(`/groups/${group.id}`)}
-                style={{ cursor: 'pointer' }}
-                styles={{ body: { padding: '20px 24px' } }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                      <Typography.Text
-                        style={{ fontSize: 16, fontWeight: 600, color: colors.text }}
-                      >
-                        {group.displayName}
-                      </Typography.Text>
-                      {group.visibility === 'Private' && (
-                        <Tag style={{ fontSize: 11 }}>Private</Tag>
-                      )}
-                      {group.type === 'dynamic' && (
-                        <Tag color="blue" style={{ fontSize: 11 }}>Dynamic</Tag>
-                      )}
-                    </div>
-                    <Typography.Text className="mono" style={{ color: colors.textMuted, display: 'block', marginBottom: 12 }}>
-                      {group.mail}
-                    </Typography.Text>
-                    <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
-                      {owner && (
-                        <div>
-                          <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                            Owner
-                          </Typography.Text>
-                          <Space size={8}>
-                            <Avatar size={24} style={{ fontSize: 11 }} icon={<UserOutlined />} />
-                            <Typography.Text style={{ fontSize: 13 }}>{owner.displayName}</Typography.Text>
-                          </Space>
-                        </div>
-                      )}
-                      {group.businessLine && (
-                        <div>
-                          <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                            Business line
-                          </Typography.Text>
-                          <Tag style={{ fontSize: 12 }}>{group.businessLine}</Tag>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <Space
-                    style={{ flexShrink: 0, marginLeft: 16 }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {!isMember && (
-                      <Button onClick={() => navigate(`/groups/${group.id}`)}>
-                        Request to join
-                      </Button>
-                    )}
-                    {isMember && (
-                      <Tag color="success">Member</Tag>
-                    )}
-                    <Dropdown
-                      menu={{
-                        items: [
-                          { key: 'view', label: 'Open', onClick: () => navigate(`/groups/${group.id}`) },
-                          ...(group.ownerIds.includes(currentUserId)
-                            ? [{ key: 'delete', label: 'Delete', danger: true }]
-                            : []),
-                        ],
-                      }}
-                      trigger={['click']}
-                    >
-                      <Button type="text" icon={<MoreOutlined />} />
-                    </Dropdown>
-                  </Space>
-                </div>
-              </Card>
-            )
-          })}
-        </Space>
+      {/* List */}
+      <div style={{
+        background: colors.surfaceRaised,
+        border: `1px solid ${colors.border}`,
+        borderRadius: radii.lg,
+        overflow: 'hidden',
+      }}>
+        {loading ? (
+          <div style={{ padding: 96, textAlign: 'center' }}>
+            <Spin />
+          </div>
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            title={search ? 'No groups match your search' : 'No groups yet'}
+            hint={search ? 'Try a different keyword.' : 'Create your first distribution group.'}
+            cta={!search ? { label: 'New group', onClick: () => navigate('/groups/new') } : undefined}
+          />
+        ) : (
+          filtered.map((g, i) => (
+            <GroupRow
+              key={g.id}
+              group={g}
+              isMember={g.memberIds.includes(currentUserId)}
+              isOwner={g.ownerIds.includes(currentUserId)}
+              divider={i > 0}
+              onClick={() => navigate(`/groups/${g.id}`)}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
+function TabLink({ active, onClick, label, count }: { active: boolean; onClick: () => void; label: string; count: number }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: 'transparent', border: 0, padding: '8px 0', cursor: 'pointer',
+        fontFamily: 'inherit', fontSize: 14,
+        color: active ? colors.text : colors.textMuted,
+        fontWeight: active ? 600 : 500,
+        borderBottom: active ? `2px solid ${colors.text}` : '2px solid transparent',
+        marginBottom: -1,
+      }}
+    >
+      {label}
+      <span style={{ marginLeft: 6, color: colors.textSubtle, fontWeight: 400 }}>{count}</span>
+    </button>
+  )
+}
+
+function GroupRow({
+  group, isMember, isOwner, divider, onClick,
+}: {
+  group: MailGroup; isMember: boolean; isOwner: boolean; divider: boolean; onClick: () => void;
+}) {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        padding: '20px 24px',
+        cursor: 'pointer',
+        borderTop: divider ? `1px solid ${colors.divider}` : 'none',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+        transition: 'background 80ms ease',
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = colors.surfaceMuted)}
+      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+    >
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+          <span style={{ fontSize: 15, fontWeight: 500, color: colors.text }}>{group.displayName}</span>
+          <VisibilityBadge value={group.visibility} />
+          {isMember && !isOwner && <Pill tone="muted">Member</Pill>}
+          {isOwner && <Pill tone="muted">Owner</Pill>}
+        </div>
+        <div style={{ fontSize: 13, color: colors.textMuted, fontFamily: 'inherit' }}>
+          {group.mail}
+          {group.tags.length > 0 && (
+            <span style={{ marginLeft: 12 }}>
+              {group.tags.slice(0, 4).map((t) => (
+                <span key={t} style={{
+                  display: 'inline-block', marginLeft: 6, padding: '2px 8px',
+                  background: colors.surfaceMuted, color: colors.textMuted,
+                  borderRadius: radii.pill, fontSize: 12,
+                }}>{t}</span>
+              ))}
+            </span>
+          )}
+        </div>
+      </div>
+      <div style={{ fontSize: 13, color: colors.textSubtle, whiteSpace: 'nowrap' }}>
+        {group.memberIds.length} {group.memberIds.length === 1 ? 'member' : 'members'}
+      </div>
+    </div>
+  )
+}
+
+function VisibilityBadge({ value }: { value: 'Public' | 'Private' }) {
+  const isPublic = value === 'Public'
+  return (
+    <Pill tone={isPublic ? 'success' : 'warning'}>{value}</Pill>
+  )
+}
+
+function Pill({ tone, children }: { tone: 'success' | 'warning' | 'muted' | 'danger'; children: React.ReactNode }) {
+  const map = {
+    success: { bg: colors.successSoft, fg: colors.success },
+    warning: { bg: colors.warningSoft, fg: colors.warning },
+    danger: { bg: colors.dangerSoft, fg: colors.danger },
+    muted: { bg: colors.surfaceMuted, fg: colors.textMuted },
+  } as const
+  const { bg, fg } = map[tone]
+  return (
+    <span style={{
+      display: 'inline-block', padding: '2px 8px', fontSize: 12,
+      borderRadius: radii.pill, background: bg, color: fg, fontWeight: 500,
+    }}>{children}</span>
+  )
+}
+
+function EmptyState({ title, hint, cta }: { title: string; hint?: string; cta?: { label: string; onClick: () => void } }) {
+  return (
+    <div style={{ padding: '96px 24px', textAlign: 'center' }}>
+      <div style={{ fontSize: 15, fontWeight: 500, color: colors.text }}>{title}</div>
+      {hint && <div style={{ marginTop: 6, fontSize: 14, color: colors.textMuted }}>{hint}</div>}
+      {cta && (
+        <Button type="primary" style={{ marginTop: 24 }} onClick={cta.onClick}>{cta.label}</Button>
       )}
     </div>
   )

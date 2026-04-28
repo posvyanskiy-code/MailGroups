@@ -1,13 +1,5 @@
 import { useEffect, useState } from 'react'
-import {
-  Typography, Button, Card, Space, Tag, Avatar, Descriptions,
-  List, Spin, message, Popconfirm, Badge, Divider, Empty,
-} from 'antd'
-import {
-  ArrowLeftOutlined, UserOutlined, MailOutlined, LockOutlined, EyeInvisibleOutlined,
-  CheckOutlined, CloseOutlined, EditOutlined, UserAddOutlined, DeleteOutlined,
-  SendOutlined,
-} from '@ant-design/icons'
+import { Button, Spin, message, Popconfirm, Dropdown } from 'antd'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { MailGroup, User, JoinRequest } from '../types'
 import { mailGroupService } from '../services'
@@ -15,9 +7,10 @@ import { useCurrentUser } from '../context/CurrentUserContext'
 import EditGroupModal from '../components/EditGroupModal'
 import AddMembersModal from '../components/AddMembersModal'
 import { SendMailModal } from '../components/SendMailModal'
-import { colors } from '../theme'
+import { colors, radii } from '../theme'
 
 type MailHistoryItem = { id: string; subject: string; recipientCount: number; status: string; createdAt: string; sentAt?: string }
+type TabKey = 'overview' | 'members' | 'mail' | 'requests'
 
 export default function GroupDetail() {
   const { id } = useParams<{ id: string }>()
@@ -37,14 +30,10 @@ export default function GroupDetail() {
   const [addOpen, setAddOpen] = useState(false)
   const [composeOpen, setComposeOpen] = useState(false)
   const [mailHistory, setMailHistory] = useState<MailHistoryItem[]>([])
+  const [tab, setTab] = useState<TabKey>('overview')
 
   const loadMailHistory = async (groupId: string) => {
-    try {
-      const history = await mailGroupService.getMailHistory(groupId)
-      setMailHistory(history)
-    } catch {
-      // non-critical — ignore silently
-    }
+    try { setMailHistory(await mailGroupService.getMailHistory(groupId)) } catch { /* */ }
   }
 
   const load = async () => {
@@ -52,12 +41,7 @@ export default function GroupDetail() {
     setLoading(true)
     try {
       const g = await mailGroupService.getGroup(id)
-      if (!g) {
-        // Group not found or private + non-member: show forbidden state
-        setGroup(null)
-        setLoading(false)
-        return
-      }
+      if (!g) { setGroup(null); setLoading(false); return }
       setGroup(g)
       const isOwnerNow = !!currentUserId && g.ownerIds.includes(currentUserId)
       const [o, m, reqs] = await Promise.all([
@@ -74,9 +58,7 @@ export default function GroupDetail() {
       setRequests(reqs)
       setRequesters(requesterUsers.filter((u): u is User => u !== null))
       setMyRequest(reqs.find((r) => r.userId === currentUserId && r.status === 'pending') ?? null)
-      if (isOwnerNow) {
-        loadMailHistory(g.id)
-      }
+      if (isOwnerNow) loadMailHistory(g.id)
     } catch {
       message.error('Failed to load data')
     } finally {
@@ -93,341 +75,315 @@ export default function GroupDetail() {
     try {
       const req = await mailGroupService.submitJoinRequest(group.id, currentUserId)
       setMyRequest(req)
-      message.success('Request submitted — awaiting owner approval')
-    } catch {
-      message.error('Failed to submit request')
-    } finally {
-      setSubmitting(false)
-    }
+      message.success('Request submitted')
+    } catch { message.error('Failed to submit request') }
+    finally { setSubmitting(false) }
   }
 
   const handleApprove = async (requestId: string) => {
     if (!group) return
     setSubmitting(true)
-    try {
-      await mailGroupService.approveJoinRequestInGroup(group.id, requestId)
-      message.success('Request approved')
-      load()
-    } catch {
-      message.error('Failed to approve request')
-    } finally {
-      setSubmitting(false)
-    }
+    try { await mailGroupService.approveJoinRequestInGroup(group.id, requestId); message.success('Approved'); load() }
+    catch { message.error('Failed to approve') }
+    finally { setSubmitting(false) }
   }
 
   const handleReject = async (requestId: string) => {
     if (!group) return
     setSubmitting(true)
-    try {
-      await mailGroupService.rejectJoinRequestInGroup(group.id, requestId)
-      message.success('Request rejected')
-      load()
-    } catch {
-      message.error('Failed to reject request')
-    } finally {
-      setSubmitting(false)
-    }
+    try { await mailGroupService.rejectJoinRequestInGroup(group.id, requestId); message.success('Rejected'); load() }
+    catch { message.error('Failed to reject') }
+    finally { setSubmitting(false) }
   }
 
   const handleDelete = async () => {
     if (!group) return
-    try {
-      await mailGroupService.deleteGroup(group.id)
-      message.success('Group deleted')
-      navigate('/groups')
-    } catch {
-      message.error('Failed to delete group')
-    }
+    try { await mailGroupService.deleteGroup(group.id); message.success('Group deleted'); navigate('/groups') }
+    catch { message.error('Failed to delete group') }
   }
 
   const handleRemoveMember = async (userId: string) => {
     if (!group) return
-    try {
-      await mailGroupService.removeMember(group.id, userId)
-      message.success('Member removed')
-      load()
-    } catch {
-      message.error('Failed to remove member')
-    }
+    try { await mailGroupService.removeMember(group.id, userId); message.success('Member removed'); load() }
+    catch { message.error('Failed to remove member') }
   }
 
-  if (loading) return <Spin size="large" style={{ display: 'block', marginTop: 80, textAlign: 'center' }} />
+  if (loading) return <div style={{ padding: 96, textAlign: 'center' }}><Spin /></div>
   if (!group) return (
-    <div style={{ maxWidth: 800 }}>
-      <Space style={{ marginBottom: 24 }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/groups')}>Back</Button>
-      </Space>
-      <Card className="flat-card">
-        <Empty description="Group not found or you don't have access" />
-      </Card>
+    <div>
+      <BackLink onClick={() => navigate('/groups')} />
+      <div style={{ padding: '96px 24px', textAlign: 'center' }}>
+        <div style={{ fontSize: 15, fontWeight: 500, color: colors.text }}>Group not found</div>
+        <div style={{ marginTop: 6, fontSize: 14, color: colors.textMuted }}>It may be private, or you don't have access.</div>
+      </div>
     </div>
   )
 
   const isMember = group.memberIds.includes(currentUserId)
   const isOwner = group.ownerIds.includes(currentUserId)
   const pendingRequests = requests.filter((r) => r.status === 'pending')
+  const showRequestsTab = isOwner && group.visibility === 'Public'
+
+  const tabs: { key: TabKey; label: string; count?: number; show: boolean }[] = [
+    { key: 'overview', label: 'Overview', show: true },
+    { key: 'members', label: 'Members', count: members.length, show: true },
+    { key: 'mail', label: 'Mail history', count: mailHistory.length, show: isOwner },
+    { key: 'requests', label: 'Requests', count: pendingRequests.length, show: showRequestsTab },
+  ]
 
   return (
-    <div style={{ maxWidth: 800 }}>
-      <Space style={{ marginBottom: 24 }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/groups')}>Back</Button>
-      </Space>
+    <div>
+      <BackLink onClick={() => navigate('/groups')} />
 
-      {/* Main card */}
-      <Card className="flat-card" style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
-          <div style={{ minWidth: 0 }}>
-            <Space align="center" style={{ marginBottom: 8, flexWrap: 'wrap' }}>
-              <Typography.Title
-                level={3}
-                style={{ margin: 0, fontWeight: 600, color: colors.text, letterSpacing: '-0.01em' }}
+      {/* Title row */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 8 }}>
+        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', color: colors.text }}>
+          {group.displayName}
+        </h1>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {!isMember && !myRequest && group.visibility === 'Public' && (
+            <Button loading={submitting} onClick={handleJoinRequest}>Request to join</Button>
+          )}
+          {myRequest && <Pill tone="muted">Request pending</Pill>}
+          {isOwner && (
+            <>
+              <Button type="primary" onClick={() => setComposeOpen(true)}>Compose</Button>
+              <Dropdown
+                menu={{
+                  items: [
+                    { key: 'edit', label: 'Edit group', onClick: () => setEditOpen(true) },
+                    { key: 'add', label: 'Add members', onClick: () => setAddOpen(true) },
+                  ],
+                }}
+                trigger={['click']}
               >
-                {group.displayName}
-              </Typography.Title>
-              {group.visibility === 'Private' && <Tag icon={<LockOutlined />}>Private</Tag>}
-              {group.type === 'dynamic' && <Tag color="blue">Dynamic</Tag>}
-              {group.hideFromAddressLists && <Tag icon={<EyeInvisibleOutlined />} color="orange">Hidden from GAL</Tag>}
-            </Space>
-            <Typography.Text className="mono" style={{ color: colors.textMuted, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <MailOutlined />{group.mail}
-            </Typography.Text>
-            {group.description && (
-              <Typography.Paragraph style={{ marginTop: 12, marginBottom: 0, color: colors.textMuted }}>
-                {group.description}
-              </Typography.Paragraph>
-            )}
-          </div>
-          <Space direction="vertical" align="end">
-            {!isMember && !myRequest && (
-              <Button
-                type="primary"
-                loading={submitting}
-                onClick={handleJoinRequest}
-              >
-                Request to join
-              </Button>
-            )}
-            {myRequest && (
-              <Tag color="processing" style={{ padding: '4px 12px' }}>Request pending</Tag>
-            )}
-            {isMember && !isOwner && (
-              <Tag color="success" style={{ padding: '4px 12px' }}>You are a member</Tag>
-            )}
-            {isOwner && (
-              <Space>
-                <Button icon={<EditOutlined />} size="small" onClick={() => setEditOpen(true)}>
-                  Edit
-                </Button>
-                <Popconfirm title="Delete this group?" onConfirm={handleDelete}>
-                  <Button danger size="small">Delete</Button>
-                </Popconfirm>
-              </Space>
-            )}
-          </Space>
+                <Button>···</Button>
+              </Dropdown>
+            </>
+          )}
         </div>
+      </div>
 
-        <Divider />
+      {/* Subline */}
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', color: colors.textMuted, fontSize: 14, marginBottom: 32 }}>
+        <span>{group.mail}</span>
+        <span style={{ color: colors.textSubtle }}>·</span>
+        <span>{group.memberIds.length} {group.memberIds.length === 1 ? 'member' : 'members'}</span>
+        <span style={{ color: colors.textSubtle }}>·</span>
+        <Pill tone={group.visibility === 'Public' ? 'success' : 'warning'}>{group.visibility}</Pill>
+      </div>
 
-        <Descriptions column={2} size="small">
-          {owner && (
-            <Descriptions.Item label="Owner">
-              <Space>
-                <Avatar size={22} style={{ fontSize: 11 }}>
-                  {owner.displayName.slice(0, 1)}
-                </Avatar>
-                {owner.displayName}
-              </Space>
-            </Descriptions.Item>
-          )}
-          {group.businessLine && (
-            <Descriptions.Item label="Business line">
-              <Tag>{group.businessLine}</Tag>
-            </Descriptions.Item>
-          )}
-          <Descriptions.Item label="Members">{group.memberIds.length}</Descriptions.Item>
-          <Descriptions.Item label="Created">
-            {new Date(group.createdAt).toLocaleDateString('en-US')}
-          </Descriptions.Item>
-          {group.tags.length > 0 && (
-            <Descriptions.Item label="Tags" span={2}>
-              <Space wrap>
-                {group.tags.map((t) => <Tag key={t}>{t}</Tag>)}
-              </Space>
-            </Descriptions.Item>
-          )}
-        </Descriptions>
-      </Card>
-
-      {/* Pending requests — owner only, only for Public groups */}
-      {isOwner && group.visibility === 'Public' && pendingRequests.length > 0 && (
-        <Card
-          className="flat-card"
-          title={<Space><span>Join requests</span><Badge count={pendingRequests.length} color={colors.primary} /></Space>}
-          style={{ marginBottom: 20 }}
-        >
-          <List
-            dataSource={pendingRequests}
-            renderItem={(req) => {
-              const requester = requesters.find((u) => u.id === req.userId) ??
-                { displayName: req.userId, id: req.userId, mail: '' }
-              return (
-                <List.Item
-                  actions={[
-                    <Button
-                      key="approve"
-                      type="primary"
-                      size="small"
-                      icon={<CheckOutlined />}
-                      loading={submitting}
-                      onClick={() => handleApprove(req.id)}
-                    >
-                      Approve
-                    </Button>,
-                    <Button
-                      key="reject"
-                      danger
-                      size="small"
-                      icon={<CloseOutlined />}
-                      loading={submitting}
-                      onClick={() => handleReject(req.id)}
-                    >
-                      Reject
-                    </Button>,
-                  ]}
-                >
-                  <List.Item.Meta
-                    avatar={<Avatar icon={<UserOutlined />} />}
-                    title={requester.displayName}
-                    description={req.message ?? 'No message'}
-                  />
-                </List.Item>
-              )
+      {/* Tabs */}
+      <div style={{
+        display: 'flex', gap: 24, borderBottom: `1px solid ${colors.border}`, marginBottom: 32,
+      }}>
+        {tabs.filter(t => t.show).map(t => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            style={{
+              background: 'transparent', border: 0, padding: '12px 0', cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 14,
+              color: tab === t.key ? colors.text : colors.textMuted,
+              fontWeight: tab === t.key ? 600 : 500,
+              borderBottom: tab === t.key ? `2px solid ${colors.text}` : '2px solid transparent',
+              marginBottom: -1,
             }}
-          />
-        </Card>
+          >
+            {t.label}
+            {typeof t.count === 'number' && (
+              <span style={{ marginLeft: 6, color: colors.textSubtle, fontWeight: 400 }}>{t.count}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      {tab === 'overview' && (
+        <div style={{ maxWidth: 720 }}>
+          {group.description && (
+            <p style={{ fontSize: 15, color: colors.text, lineHeight: 1.6, margin: '0 0 32px' }}>
+              {group.description}
+            </p>
+          )}
+          <DefRow label="Owner" value={owner?.displayName ?? '—'} />
+          {group.businessLine && <DefRow label="Business line" value={group.businessLine} />}
+          {group.tags.length > 0 && (
+            <DefRow label="Tags" value={
+              <span>{group.tags.map(t => <span key={t} style={pillStyle()}>{t}</span>)}</span>
+            } />
+          )}
+          <DefRow label="Created" value={new Date(group.createdAt).toLocaleDateString('en-US')} />
+          {isOwner && (
+            <div style={{ marginTop: 32, paddingTop: 24, borderTop: `1px solid ${colors.border}` }}>
+              <Popconfirm title="Delete this group?" onConfirm={handleDelete}>
+                <Button danger>Delete group</Button>
+              </Popconfirm>
+            </div>
+          )}
+        </div>
       )}
 
-      {/* Members list */}
-      <Card
-        className="flat-card"
-        title={`Members (${members.length})`}
-        extra={
-          isOwner && (
-            <Button type="primary" icon={<UserAddOutlined />} onClick={() => setAddOpen(true)}>
-              Add members
-            </Button>
-          )
-        }
-      >
-        {members.length === 0 ? (
-          <Empty description="No members" />
-        ) : (
-          <List
-            dataSource={members}
-            renderItem={(u) => (
-              <List.Item
-                actions={
-                  isOwner && !group.ownerIds.includes(u.id)
-                    ? [
-                        <Popconfirm
-                          key="remove"
-                          title="Remove this member?"
-                          onConfirm={() => handleRemoveMember(u.id)}
-                        >
-                          <Button type="text" danger size="small" icon={<DeleteOutlined />} />
-                        </Popconfirm>,
-                      ]
-                    : undefined
-                }
-              >
-                <List.Item.Meta
-                  avatar={
-                    <Avatar>
-                      {u.displayName.slice(0, 1)}
-                    </Avatar>
-                  }
-                  title={u.displayName}
-                  description={
-                    <Space>
-                      <span className="mono">{u.mail}</span>
-                      {group.ownerIds.includes(u.id) && <Tag color="blue">Owner</Tag>}
-                    </Space>
-                  }
-                />
-              </List.Item>
-            )}
-          />
-        )}
-      </Card>
-
-      {/* Compose / mail history — owner only */}
-      {isOwner && (
-        <Card
-          className="flat-card"
-          title="Send mail"
-          style={{ marginTop: 16 }}
-          extra={
-            <Button
-              type="primary"
-              icon={<SendOutlined />}
-              onClick={() => setComposeOpen(true)}
-            >
-              Compose
-            </Button>
-          }
-        >
-          {mailHistory.length === 0 ? (
-            <Empty description="No sent messages yet" />
-          ) : (
-            <List
-              dataSource={mailHistory}
-              renderItem={(item) => (
-                <List.Item>
-                  <List.Item.Meta
-                    title={item.subject}
-                    description={
-                      <Space>
-                        <Tag color={item.status === 'sent' ? 'success' : item.status === 'failed' ? 'error' : 'default'}>
-                          {item.status}
-                        </Tag>
-                        <span style={{ color: colors.textMuted, fontSize: 12 }}>
-                          {item.recipientCount} recipient{item.recipientCount !== 1 ? 's' : ''}
-                        </span>
-                        <span style={{ color: colors.textMuted, fontSize: 12 }}>
-                          {new Date(item.createdAt).toLocaleString('en-US')}
-                        </span>
-                      </Space>
-                    }
-                  />
-                </List.Item>
-              )}
-            />
+      {tab === 'members' && (
+        <div style={{
+          background: colors.surfaceRaised, border: `1px solid ${colors.border}`,
+          borderRadius: radii.lg, overflow: 'hidden',
+        }}>
+          {isOwner && (
+            <div style={{
+              padding: '14px 20px', borderBottom: `1px solid ${colors.divider}`,
+              display: 'flex', justifyContent: 'flex-end',
+            }}>
+              <Button type="primary" size="small" onClick={() => setAddOpen(true)}>Add members</Button>
+            </div>
           )}
-        </Card>
+          {members.length === 0 ? (
+            <div style={{ padding: '64px 24px', textAlign: 'center', color: colors.textMuted, fontSize: 14 }}>
+              No members yet.
+            </div>
+          ) : members.map((u, i) => (
+            <div key={u.id} style={{
+              padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              borderTop: i > 0 ? `1px solid ${colors.divider}` : 'none',
+            }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 500, color: colors.text }}>{u.displayName}</div>
+                <div style={{ fontSize: 13, color: colors.textMuted }}>{u.mail}</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {group.ownerIds.includes(u.id) && <Pill tone="muted">Owner</Pill>}
+                {isOwner && !group.ownerIds.includes(u.id) && (
+                  <Popconfirm title="Remove this member?" onConfirm={() => handleRemoveMember(u.id)}>
+                    <button style={textBtnStyle()}>Remove</button>
+                  </Popconfirm>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === 'mail' && isOwner && (
+        <div style={{
+          background: colors.surfaceRaised, border: `1px solid ${colors.border}`,
+          borderRadius: radii.lg, overflow: 'hidden',
+        }}>
+          {mailHistory.length === 0 ? (
+            <div style={{ padding: '64px 24px', textAlign: 'center' }}>
+              <div style={{ fontSize: 14, color: colors.textMuted }}>No broadcasts yet.</div>
+              <Button type="primary" style={{ marginTop: 24 }} onClick={() => setComposeOpen(true)}>Compose</Button>
+            </div>
+          ) : mailHistory.map((m, i) => (
+            <div key={m.id} style={{
+              padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              borderTop: i > 0 ? `1px solid ${colors.divider}` : 'none',
+            }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: colors.text }}>{m.subject}</div>
+                <div style={{ fontSize: 13, color: colors.textMuted }}>
+                  {m.recipientCount} {m.recipientCount === 1 ? 'recipient' : 'recipients'} · {new Date(m.createdAt).toLocaleString('en-US')}
+                </div>
+              </div>
+              <Pill tone={m.status === 'sent' ? 'success' : m.status === 'failed' ? 'danger' : 'muted'}>{m.status}</Pill>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === 'requests' && showRequestsTab && (
+        <div style={{
+          background: colors.surfaceRaised, border: `1px solid ${colors.border}`,
+          borderRadius: radii.lg, overflow: 'hidden',
+        }}>
+          {pendingRequests.length === 0 ? (
+            <div style={{ padding: '64px 24px', textAlign: 'center', color: colors.textMuted, fontSize: 14 }}>
+              No pending requests.
+            </div>
+          ) : pendingRequests.map((req, i) => {
+            const r = requesters.find((u) => u.id === req.userId) ?? { displayName: req.userId, mail: '' }
+            return (
+              <div key={req.id} style={{
+                padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                borderTop: i > 0 ? `1px solid ${colors.divider}` : 'none',
+              }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 500, color: colors.text }}>{r.displayName}</div>
+                  {r.mail && <div style={{ fontSize: 13, color: colors.textMuted }}>{r.mail}</div>}
+                </div>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button onClick={() => handleReject(req.id)} disabled={submitting} style={textBtnStyle({ color: colors.textMuted })}>Reject</button>
+                  <Button type="primary" size="small" loading={submitting} onClick={() => handleApprove(req.id)}>Approve</Button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
       )}
 
       {isOwner && (
         <>
-          <EditGroupModal
-            open={editOpen}
-            group={group}
-            onClose={() => setEditOpen(false)}
-            onSaved={(g) => setGroup(g)}
-          />
-          <AddMembersModal
-            open={addOpen}
-            group={group}
-            onClose={() => setAddOpen(false)}
-            onAdded={() => load()}
-          />
-          <SendMailModal
-            open={composeOpen}
-            groupId={group.id}
-            onClose={() => setComposeOpen(false)}
-            onSent={() => loadMailHistory(group.id)}
-          />
+          <EditGroupModal open={editOpen} group={group} onClose={() => setEditOpen(false)} onSaved={(g) => setGroup(g)} />
+          <AddMembersModal open={addOpen} group={group} onClose={() => setAddOpen(false)} onAdded={() => load()} />
+          <SendMailModal open={composeOpen} groupId={group.id} onClose={() => setComposeOpen(false)} onSent={() => loadMailHistory(group.id)} />
         </>
       )}
     </div>
+  )
+}
+
+function BackLink({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: 'transparent', border: 0, padding: 0, cursor: 'pointer',
+        color: colors.textMuted, fontSize: 13, fontFamily: 'inherit',
+        marginBottom: 16,
+      }}
+    >
+      ← Back to groups
+    </button>
+  )
+}
+
+function DefRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div style={{
+      display: 'flex', padding: '12px 0', borderTop: `1px solid ${colors.divider}`, gap: 24,
+    }}>
+      <div style={{ width: 140, fontSize: 13, color: colors.textMuted }}>{label}</div>
+      <div style={{ flex: 1, fontSize: 14, color: colors.text }}>{value}</div>
+    </div>
+  )
+}
+
+function pillStyle(): React.CSSProperties {
+  return {
+    display: 'inline-block', marginRight: 6, padding: '2px 8px',
+    background: colors.surfaceMuted, color: colors.textMuted,
+    borderRadius: radii.pill, fontSize: 12,
+  }
+}
+
+function textBtnStyle(extra: React.CSSProperties = {}): React.CSSProperties {
+  return {
+    background: 'transparent', border: 0, padding: 0, cursor: 'pointer',
+    color: colors.text, fontSize: 13, fontFamily: 'inherit', ...extra,
+  }
+}
+
+function Pill({ tone, children }: { tone: 'success' | 'warning' | 'muted' | 'danger'; children: React.ReactNode }) {
+  const map = {
+    success: { bg: colors.successSoft, fg: colors.success },
+    warning: { bg: colors.warningSoft, fg: colors.warning },
+    danger: { bg: colors.dangerSoft, fg: colors.danger },
+    muted: { bg: colors.surfaceMuted, fg: colors.textMuted },
+  } as const
+  const { bg, fg } = map[tone]
+  return (
+    <span style={{
+      display: 'inline-block', padding: '2px 8px', fontSize: 12,
+      borderRadius: radii.pill, background: bg, color: fg, fontWeight: 500,
+    }}>{children}</span>
   )
 }
