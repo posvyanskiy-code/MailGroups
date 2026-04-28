@@ -7,9 +7,11 @@ import GroupList from './pages/GroupList'
 import GroupCreate from './pages/GroupCreate'
 import GroupDetail from './pages/GroupDetail'
 import { colors, fonts } from './theme'
+import { AuthProvider } from './auth/AuthProvider'
 
 export default function App() {
   return (
+    <AuthProvider>
     <ConfigProvider
       locale={enUS}
       theme={{
@@ -51,5 +53,6 @@ export default function App() {
         </CurrentUserProvider>
       </BrowserRouter>
     </ConfigProvider>
+    </AuthProvider>
   )
 }

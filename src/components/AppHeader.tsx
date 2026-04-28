@@ -1,7 +1,28 @@
-import { Avatar, Typography } from 'antd'
+import { Avatar, Button, Typography } from 'antd'
 import { MailOutlined } from '@ant-design/icons'
+import { useMsal, useIsAuthenticated } from '@azure/msal-react'
 import { useCurrentUser } from '../context/CurrentUserContext'
 import { colors } from '../theme'
+import { apiScope } from '../auth/msalConfig'
+
+function SignInOut() {
+  const { instance, accounts } = useMsal()
+  const authed = useIsAuthenticated()
+  if (!authed) {
+    return (
+      <Button type="primary" onClick={() => instance.loginRedirect({ scopes: [apiScope] })}>
+        Sign in
+      </Button>
+    )
+  }
+  const name = accounts[0]?.name ?? accounts[0]?.username ?? ''
+  return (
+    <span>
+      {name}{' '}
+      <Button onClick={() => instance.logoutRedirect()}>Sign out</Button>
+    </span>
+  )
+}
 
 export default function AppHeader() {
   const user = useCurrentUser()
@@ -32,6 +53,7 @@ export default function AppHeader() {
         <Avatar size={32} style={{ fontSize: 13, cursor: 'default' }}>
           {user.displayName.slice(0, 1)}
         </Avatar>
+        <SignInOut />
       </div>
     </header>
   )
