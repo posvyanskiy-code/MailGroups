@@ -1,0 +1,13 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: mailgroups
+      POSTGRES_PASSWORD: mailgroups
+      POSTGRES_DB: mailgroups
+    ports:
+      - "5433:5432"
+    volumes:
+      - mailgroups-pgdata:/var/lib/postgresql/data
+volumes:
+  mailgroups-pgdata:
