@@ -1,8 +1,10 @@
+using MailGroups.Api.Auth;
 using MailGroups.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddMsalAuth(builder.Configuration);
 builder.Services.AddControllers();
 builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
@@ -31,5 +33,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors(DevCors);
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 app.Run();
