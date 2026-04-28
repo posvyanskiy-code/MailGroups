@@ -21,7 +21,9 @@ public class MembersController(AppDbContext db, IGraphService graph) : Controlle
         var g = await db.Groups.Include(x => x.Owners).Include(x => x.Members)
             .FirstOrDefaultAsync(x => x.Id == groupId);
         if (g is null) return NotFound();
-        var canSee = g.Owners.Any(o => o.EntraUserId == me) || g.Members.Any(m => m.EntraUserId == me);
+        var canSee = g.Visibility == "Public"
+            || g.Owners.Any(o => o.EntraUserId == me)
+            || g.Members.Any(m => m.EntraUserId == me);
         if (!canSee) return Forbid();
         return g.Members.Select(m => new UserDto
         {

@@ -4,6 +4,15 @@ namespace MailGroups.Api.Auth;
 
 public static class CurrentUser
 {
-    public static Guid Id(ClaimsPrincipal u) =>
-        Guid.Parse(u.FindFirstValue("oid") ?? u.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    private const string OidUri = "http://schemas.microsoft.com/identity/claims/objectidentifier";
+
+    public static Guid Id(ClaimsPrincipal u)
+    {
+        var oid = u.FindFirstValue("oid")
+               ?? u.FindFirstValue(OidUri)
+               ?? u.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(oid))
+            throw new InvalidOperationException("Token has no oid/nameid claim");
+        return Guid.Parse(oid);
+    }
 }

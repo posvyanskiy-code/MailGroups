@@ -1,3 +1,4 @@
+using MailGroups.Api.Auth;
 using MailGroups.Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,12 +14,16 @@ public class MeController : ControllerBase
     [HttpGet]
     public ActionResult<UserDto> Get()
     {
-        var oid = User.FindFirstValue("oid") ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var name = User.FindFirstValue("name") ?? "";
-        var mail = User.FindFirstValue("preferred_username") ?? "";
+        var name = User.FindFirstValue("name")
+                ?? User.FindFirstValue("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name")
+                ?? "";
+        var mail = User.FindFirstValue("preferred_username")
+                ?? User.FindFirstValue(ClaimTypes.Upn)
+                ?? User.FindFirstValue(ClaimTypes.Email)
+                ?? "";
         return new UserDto
         {
-            Id = Guid.Parse(oid!),
+            Id = CurrentUser.Id(User),
             DisplayName = name,
             Mail = mail,
         };

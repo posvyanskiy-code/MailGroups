@@ -15,7 +15,7 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
     if (!authed || !accounts[0]) { setU(null); return }
     api<{ id: string; displayName: string; mail: string }>('/api/me')
       .then(d => setU({ id: d.id, displayName: d.displayName, mail: d.mail }))
-      .catch(() => setU(null))
+      .catch(err => { console.error('GET /api/me failed:', err); setU(null) })
   }, [authed, accounts])
 
   return <CurrentUserContext.Provider value={u}>{children}</CurrentUserContext.Provider>
