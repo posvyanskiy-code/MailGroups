@@ -90,10 +90,10 @@ export default function EditGroupModal({ open, group, onClose, onSaved }: Props)
           <MetaTagsInput value={tags} onChange={setTags} />
         </Form.Item>
 
-        <Form.Item label="Visibility" name="visibility">
+        <Form.Item label="Visibility" name="visibility" rules={[{ required: true }]}>
           <Radio.Group>
-            <Radio value="Public">Public</Radio>
-            <Radio value="Private">Private</Radio>
+            <Radio value="Public">Public — visible in search, anyone can request to join</Radio>
+            <Radio value="Private">Private — invisible to non-members, owners add manually</Radio>
           </Radio.Group>
         </Form.Item>
 

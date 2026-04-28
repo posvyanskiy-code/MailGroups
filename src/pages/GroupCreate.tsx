@@ -119,10 +119,10 @@ export default function GroupCreate() {
             </Radio.Group>
           </Form.Item>
 
-          <Form.Item label="Visibility" name="visibility">
+          <Form.Item label="Visibility" name="visibility" rules={[{ required: true }]}>
             <Radio.Group>
-              <Radio value="Public">Public — visible to everyone</Radio>
-              <Radio value="Private">Private — invitation only</Radio>
+              <Radio value="Public">Public — visible in search, anyone can request to join</Radio>
+              <Radio value="Private">Private — invisible to non-members, owners add manually</Radio>
             </Radio.Group>
           </Form.Item>
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Modal, Tabs, Select, Button, Upload, Input, Typography, Space, Tag, message,
 } from 'antd'
@@ -26,24 +26,47 @@ function parseEmails(raw: string): string[] {
 }
 
 export default function AddMembersModal({ open, group, onClose, onAdded }: Props) {
-  const [users, setUsers] = useState<User[]>([])
+  const [searchOptions, setSearchOptions] = useState<{ label: string; value: string }[]>([])
+  const [searching, setSearching] = useState(false)
   const [pickedIds, setPickedIds] = useState<string[]>([])
   const [extraEmails, setExtraEmails] = useState<string[]>([])
   const [extraInput, setExtraInput] = useState('')
   const [bulkText, setBulkText] = useState('')
   const [saving, setSaving] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (open) {
-      mailGroupService.getUsers().then(setUsers)
       setPickedIds([])
       setExtraEmails([])
       setExtraInput('')
       setBulkText('')
+      setSearchOptions([])
     }
   }, [open])
 
-  const candidates = users.filter((u) => !group.memberIds.includes(u.id))
+  const handleSearch = useCallback((query: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (!query.trim()) {
+      setSearchOptions([])
+      return
+    }
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true)
+      try {
+        const results: User[] = await mailGroupService.searchUsers(query)
+        const filtered = results.filter((u) => !group.memberIds.includes(u.id))
+        setSearchOptions(filtered.map((u) => ({
+          label: `${u.displayName} — ${u.mail}`,
+          value: u.id,
+        })))
+      } catch {
+        // ignore search errors
+      } finally {
+        setSearching(false)
+      }
+    }, 300)
+  }, [group.memberIds])
 
   const addExtraEmail = () => {
     const email = extraInput.trim().toLowerCase()
@@ -104,19 +127,20 @@ export default function AddMembersModal({ open, group, onClose, onAdded }: Props
       children: (
         <div>
           <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
-            Pick from existing users
+            Search and pick existing users
           </Typography.Text>
           <Select
             mode="multiple"
+            showSearch
+            filterOption={false}
             placeholder="Search by name or email"
             style={{ width: '100%', marginBottom: 16 }}
             value={pickedIds}
             onChange={setPickedIds}
-            optionFilterProp="label"
-            options={candidates.map((u) => ({
-              label: `${u.displayName} — ${u.mail}`,
-              value: u.id,
-            }))}
+            onSearch={handleSearch}
+            loading={searching}
+            options={searchOptions}
+            notFoundContent={searching ? 'Searching…' : 'No users found'}
           />
 
           <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>

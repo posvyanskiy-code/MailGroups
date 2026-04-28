@@ -6,6 +6,7 @@ import {
 import {
   ArrowLeftOutlined, UserOutlined, MailOutlined, LockOutlined, EyeInvisibleOutlined,
   CheckOutlined, CloseOutlined, EditOutlined, UserAddOutlined, DeleteOutlined,
+  SendOutlined,
 } from '@ant-design/icons'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { MailGroup, User, JoinRequest } from '../types'
@@ -13,7 +14,10 @@ import { mailGroupService } from '../services'
 import { useCurrentUser } from '../context/CurrentUserContext'
 import EditGroupModal from '../components/EditGroupModal'
 import AddMembersModal from '../components/AddMembersModal'
+import { SendMailModal } from '../components/SendMailModal'
 import { colors } from '../theme'
+
+type MailHistoryItem = { id: string; subject: string; recipientCount: number; status: string; createdAt: string; sentAt?: string }
 
 export default function GroupDetail() {
   const { id } = useParams<{ id: string }>()
@@ -31,14 +35,31 @@ export default function GroupDetail() {
   const [submitting, setSubmitting] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
+  const [composeOpen, setComposeOpen] = useState(false)
+  const [mailHistory, setMailHistory] = useState<MailHistoryItem[]>([])
+
+  const loadMailHistory = async (groupId: string) => {
+    try {
+      const history = await mailGroupService.getMailHistory(groupId)
+      setMailHistory(history)
+    } catch {
+      // non-critical — ignore silently
+    }
+  }
 
   const load = async () => {
     if (!id) return
     setLoading(true)
     try {
       const g = await mailGroupService.getGroup(id)
-      if (!g) { message.error('Group not found'); navigate('/groups'); return }
+      if (!g) {
+        // Group not found or private + non-member: show forbidden state
+        setGroup(null)
+        setLoading(false)
+        return
+      }
       setGroup(g)
+      const isOwnerNow = !!currentUserId && g.ownerIds.includes(currentUserId)
       const [o, m, reqs] = await Promise.all([
         mailGroupService.getUser(g.ownerIds[0] ?? ''),
         mailGroupService.getGroupMembers(id),
@@ -53,6 +74,9 @@ export default function GroupDetail() {
       setRequests(reqs)
       setRequesters(requesterUsers.filter((u): u is User => u !== null))
       setMyRequest(reqs.find((r) => r.userId === currentUserId && r.status === 'pending') ?? null)
+      if (isOwnerNow) {
+        loadMailHistory(g.id)
+      }
     } catch {
       message.error('Failed to load data')
     } finally {
@@ -128,7 +152,16 @@ export default function GroupDetail() {
   }
 
   if (loading) return <Spin size="large" style={{ display: 'block', marginTop: 80, textAlign: 'center' }} />
-  if (!group) return null
+  if (!group) return (
+    <div style={{ maxWidth: 800 }}>
+      <Space style={{ marginBottom: 24 }}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/groups')}>Back</Button>
+      </Space>
+      <Card className="flat-card">
+        <Empty description="Group not found or you don't have access" />
+      </Card>
+    </div>
+  )
 
   const isMember = group.memberIds.includes(currentUserId)
   const isOwner = group.ownerIds.includes(currentUserId)
@@ -225,8 +258,8 @@ export default function GroupDetail() {
         </Descriptions>
       </Card>
 
-      {/* Pending requests — только для владельца */}
-      {isOwner && pendingRequests.length > 0 && (
+      {/* Pending requests — owner only, only for Public groups */}
+      {isOwner && group.visibility === 'Public' && pendingRequests.length > 0 && (
         <Card
           className="flat-card"
           title={<Space><span>Join requests</span><Badge count={pendingRequests.length} color={colors.primary} /></Space>}
@@ -327,6 +360,52 @@ export default function GroupDetail() {
         )}
       </Card>
 
+      {/* Compose / mail history — owner only */}
+      {isOwner && (
+        <Card
+          className="flat-card"
+          title="Send mail"
+          style={{ marginTop: 16 }}
+          extra={
+            <Button
+              type="primary"
+              icon={<SendOutlined />}
+              onClick={() => setComposeOpen(true)}
+            >
+              Compose
+            </Button>
+          }
+        >
+          {mailHistory.length === 0 ? (
+            <Empty description="No sent messages yet" />
+          ) : (
+            <List
+              dataSource={mailHistory}
+              renderItem={(item) => (
+                <List.Item>
+                  <List.Item.Meta
+                    title={item.subject}
+                    description={
+                      <Space>
+                        <Tag color={item.status === 'sent' ? 'success' : item.status === 'failed' ? 'error' : 'default'}>
+                          {item.status}
+                        </Tag>
+                        <span style={{ color: colors.textMuted, fontSize: 12 }}>
+                          {item.recipientCount} recipient{item.recipientCount !== 1 ? 's' : ''}
+                        </span>
+                        <span style={{ color: colors.textMuted, fontSize: 12 }}>
+                          {new Date(item.createdAt).toLocaleString('en-US')}
+                        </span>
+                      </Space>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
+          )}
+        </Card>
+      )}
+
       {isOwner && (
         <>
           <EditGroupModal
@@ -340,6 +419,12 @@ export default function GroupDetail() {
             group={group}
             onClose={() => setAddOpen(false)}
             onAdded={() => load()}
+          />
+          <SendMailModal
+            open={composeOpen}
+            groupId={group.id}
+            onClose={() => setComposeOpen(false)}
+            onSent={() => loadMailHistory(group.id)}
           />
         </>
       )}
