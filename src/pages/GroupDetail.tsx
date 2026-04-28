@@ -85,7 +85,7 @@ export default function GroupDetail() {
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load() }, [id, currentUserId])
+  useEffect(() => { if (currentUserId) load() }, [id, currentUserId])
 
   const handleJoinRequest = async () => {
     if (!group) return

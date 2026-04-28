@@ -33,13 +33,22 @@ export default function GroupList() {
 
   const load = async () => {
     setLoading(true)
-    const [g, u] = await Promise.all([mailGroupService.getGroups(), mailGroupService.getUsers()])
-    setGroups(g)
-    setUsers(u)
-    setLoading(false)
+    try {
+      const [g, u] = await Promise.all([mailGroupService.getGroups(), mailGroupService.getUsers()])
+      setGroups(g)
+      setUsers(u)
+    } catch {
+      setGroups([])
+      setUsers([])
+    } finally {
+      setLoading(false)
+    }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    if (!currentUserId) { setLoading(false); return }
+    load()
+  }, [currentUserId])
 
   const userMap = useMemo(() => new Map(users.map((u) => [u.id, u])), [users])
 
