@@ -16,7 +16,7 @@ export interface MailGroup {
   mailNickname: string;       // часть адреса до @
   mail: string;               // полный email рассылки
   description?: string;
-  ownerId: string;
+  ownerIds: string[];
   businessLine?: string;
   tags: string[];
   type: GroupType;

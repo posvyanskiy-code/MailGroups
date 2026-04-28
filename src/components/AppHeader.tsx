@@ -47,12 +47,16 @@ export default function AppHeader() {
         </Typography.Text>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Typography.Text type="secondary" style={{ fontSize: 13, color: colors.textMuted }}>
-          {user.displayName}
-        </Typography.Text>
-        <Avatar size={32} style={{ fontSize: 13, cursor: 'default' }}>
-          {user.displayName.slice(0, 1)}
-        </Avatar>
+        {user && (
+          <>
+            <Typography.Text type="secondary" style={{ fontSize: 13, color: colors.textMuted }}>
+              {user.displayName}
+            </Typography.Text>
+            <Avatar size={32} style={{ fontSize: 13, cursor: 'default' }}>
+              {user.displayName.slice(0, 1)}
+            </Avatar>
+          </>
+        )}
         <SignInOut />
       </div>
     </header>

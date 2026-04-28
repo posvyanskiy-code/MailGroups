@@ -19,6 +19,7 @@ export default function GroupDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const currentUser = useCurrentUser()
+  const currentUserId = currentUser?.id ?? ''
 
   const [group, setGroup] = useState<MailGroup | null>(null)
   const [owner, setOwner] = useState<User | null>(null)
@@ -39,7 +40,7 @@ export default function GroupDetail() {
       if (!g) { message.error('Group not found'); navigate('/groups'); return }
       setGroup(g)
       const [o, m, reqs] = await Promise.all([
-        mailGroupService.getUser(g.ownerId),
+        mailGroupService.getUser(g.ownerIds[0] ?? ''),
         mailGroupService.getGroupMembers(id),
         mailGroupService.getJoinRequests(id),
       ])
@@ -51,7 +52,7 @@ export default function GroupDetail() {
       setMembers(m)
       setRequests(reqs)
       setRequesters(requesterUsers.filter((u): u is User => u !== null))
-      setMyRequest(reqs.find((r) => r.userId === currentUser.id && r.status === 'pending') ?? null)
+      setMyRequest(reqs.find((r) => r.userId === currentUserId && r.status === 'pending') ?? null)
     } catch {
       message.error('Failed to load data')
     } finally {
@@ -60,13 +61,13 @@ export default function GroupDetail() {
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load() }, [id, currentUser.id])
+  useEffect(() => { load() }, [id, currentUserId])
 
   const handleJoinRequest = async () => {
     if (!group) return
     setSubmitting(true)
     try {
-      const req = await mailGroupService.submitJoinRequest(group.id, currentUser.id)
+      const req = await mailGroupService.submitJoinRequest(group.id, currentUserId)
       setMyRequest(req)
       message.success('Request submitted — awaiting owner approval')
     } catch {
@@ -77,9 +78,10 @@ export default function GroupDetail() {
   }
 
   const handleApprove = async (requestId: string) => {
+    if (!group) return
     setSubmitting(true)
     try {
-      await mailGroupService.approveJoinRequest(requestId)
+      await mailGroupService.approveJoinRequestInGroup(group.id, requestId)
       message.success('Request approved')
       load()
     } catch {
@@ -90,9 +92,10 @@ export default function GroupDetail() {
   }
 
   const handleReject = async (requestId: string) => {
+    if (!group) return
     setSubmitting(true)
     try {
-      await mailGroupService.rejectJoinRequest(requestId)
+      await mailGroupService.rejectJoinRequestInGroup(group.id, requestId)
       message.success('Request rejected')
       load()
     } catch {
@@ -127,8 +130,8 @@ export default function GroupDetail() {
   if (loading) return <Spin size="large" style={{ display: 'block', marginTop: 80, textAlign: 'center' }} />
   if (!group) return null
 
-  const isMember = group.memberIds.includes(currentUser.id)
-  const isOwner = group.ownerId === currentUser.id
+  const isMember = group.memberIds.includes(currentUserId)
+  const isOwner = group.ownerIds.includes(currentUserId)
   const pendingRequests = requests.filter((r) => r.status === 'pending')
 
   return (
@@ -291,7 +294,7 @@ export default function GroupDetail() {
             renderItem={(u) => (
               <List.Item
                 actions={
-                  isOwner && u.id !== group.ownerId
+                  isOwner && !group.ownerIds.includes(u.id)
                     ? [
                         <Popconfirm
                           key="remove"
@@ -314,7 +317,7 @@ export default function GroupDetail() {
                   description={
                     <Space>
                       <span className="mono">{u.mail}</span>
-                      {u.id === group.ownerId && <Tag color="blue">Owner</Tag>}
+                      {group.ownerIds.includes(u.id) && <Tag color="blue">Owner</Tag>}
                     </Space>
                   }
                 />

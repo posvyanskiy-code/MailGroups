@@ -19,6 +19,7 @@ type SortDir = 'asc' | 'desc'
 export default function GroupList() {
   const navigate = useNavigate()
   const currentUser = useCurrentUser()
+  const currentUserId = currentUser?.id ?? ''
 
   const [groups, setGroups] = useState<MailGroup[]>([])
   const [users, setUsers] = useState<User[]>([])
@@ -51,8 +52,8 @@ export default function GroupList() {
   const filtered = useMemo(() => {
     let list = groups
 
-    if (tab === 'subscriptions') list = list.filter((g) => g.memberIds.includes(currentUser.id))
-    if (tab === 'mine') list = list.filter((g) => g.ownerId === currentUser.id)
+    if (tab === 'subscriptions') list = list.filter((g) => g.memberIds.includes(currentUserId))
+    if (tab === 'mine') list = list.filter((g) => g.ownerIds.includes(currentUserId))
     if (tab === 'dynamic') list = list.filter((g) => g.type === 'dynamic')
 
     if (search.trim()) {
@@ -67,23 +68,23 @@ export default function GroupList() {
     }
 
     if (filterBL) list = list.filter((g) => g.businessLine === filterBL)
-    if (filterOwner) list = list.filter((g) => g.ownerId === filterOwner)
+    if (filterOwner) list = list.filter((g) => g.ownerIds.includes(filterOwner))
     if (filterTag) list = list.filter((g) => g.tags.includes(filterTag))
 
     return [...list].sort((a, b) => {
       const diff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       return sortDir === 'asc' ? diff : -diff
     })
-  }, [groups, tab, search, filterBL, filterOwner, filterTag, sortDir, currentUser.id])
+  }, [groups, tab, search, filterBL, filterOwner, filterTag, sortDir, currentUserId])
 
   const counts = useMemo(
     () => ({
       all: groups.length,
-      subscriptions: groups.filter((g) => g.memberIds.includes(currentUser.id)).length,
-      mine: groups.filter((g) => g.ownerId === currentUser.id).length,
+      subscriptions: groups.filter((g) => g.memberIds.includes(currentUserId)).length,
+      mine: groups.filter((g) => g.ownerIds.includes(currentUserId)).length,
       dynamic: groups.filter((g) => g.type === 'dynamic').length,
     }),
-    [groups, currentUser.id],
+    [groups, currentUserId],
   )
 
   const tabItems = [
@@ -180,8 +181,8 @@ export default function GroupList() {
       ) : (
         <Space direction="vertical" style={{ width: '100%' }} size={12}>
           {filtered.map((group) => {
-            const owner = userMap.get(group.ownerId)
-            const isMember = group.memberIds.includes(currentUser.id)
+            const owner = userMap.get(group.ownerIds[0] ?? '')
+            const isMember = group.memberIds.includes(currentUserId)
             return (
               <Card
                 key={group.id}
@@ -247,7 +248,7 @@ export default function GroupList() {
                       menu={{
                         items: [
                           { key: 'view', label: 'Open', onClick: () => navigate(`/groups/${group.id}`) },
-                          ...(group.ownerId === currentUser.id
+                          ...(group.ownerIds.includes(currentUserId)
                             ? [{ key: 'delete', label: 'Delete', danger: true }]
                             : []),
                         ],

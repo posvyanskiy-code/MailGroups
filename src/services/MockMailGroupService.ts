@@ -46,22 +46,23 @@ export class MockMailGroupService implements IMailGroupService {
     return groups.find((g) => g.id === id) ?? null
   }
 
-  async createGroup(input: CreateGroupInput, ownerId: string): Promise<MailGroup> {
+  async createGroup(input: CreateGroupInput, ownerId?: string): Promise<MailGroup> {
     const groups = await this.getGroups()
     const now = new Date().toISOString()
+    const ownerList = ownerId ? [ownerId] : []
     const group: MailGroup = {
       id: crypto.randomUUID(),
       displayName: input.displayName,
       mailNickname: input.mailNickname,
       mail: `${input.mailNickname}@${DOMAIN}`,
       description: input.description,
-      ownerId,
+      ownerIds: ownerList,
       businessLine: input.businessLine,
       tags: input.tags,
       type: input.type,
       visibility: input.visibility,
       hideFromAddressLists: input.hideFromAddressLists,
-      memberIds: [ownerId],
+      memberIds: ownerList,
       createdAt: now,
       updatedAt: now,
     }
@@ -126,7 +127,7 @@ export class MockMailGroupService implements IMailGroupService {
     const groups = await this.getGroups()
     const idx = groups.findIndex((g) => g.id === groupId)
     if (idx < 0) throw new Error(`Group ${groupId} not found`)
-    if (groups[idx].ownerId === userId) throw new Error('Cannot remove the group owner')
+    if (groups[idx].ownerIds.includes(userId)) throw new Error('Cannot remove the group owner')
     groups[idx] = {
       ...groups[idx],
       memberIds: groups[idx].memberIds.filter((id) => id !== userId),
@@ -136,30 +137,17 @@ export class MockMailGroupService implements IMailGroupService {
     return groups[idx]
   }
 
-  async findOrCreateUserByEmail(email: string, displayName?: string): Promise<User> {
-    const normalized = email.trim().toLowerCase()
-    const users = await this.getUsers()
-    const existing = users.find((u) => u.mail.toLowerCase() === normalized)
-    if (existing) return existing
-    const user: User = {
-      id: crypto.randomUUID(),
-      displayName: displayName?.trim() || normalized.split('@')[0],
-      mail: normalized,
-    }
-    saveArr(USERS_KEY, [...users, user])
-    return user
-  }
-
-  async submitJoinRequest(groupId: string, userId: string, message?: string): Promise<JoinRequest> {
+  async submitJoinRequest(groupId: string, userId?: string, message?: string): Promise<JoinRequest> {
+    const uid = userId ?? 'unknown'
     const requests = loadArr<JoinRequest>(REQUESTS_KEY)
     const existing = requests.find(
-      (r) => r.groupId === groupId && r.userId === userId && r.status === 'pending',
+      (r) => r.groupId === groupId && r.userId === uid && r.status === 'pending',
     )
     if (existing) return existing
     const req: JoinRequest = {
       id: crypto.randomUUID(),
       groupId,
-      userId,
+      userId: uid,
       message,
       status: 'pending',
       createdAt: new Date().toISOString(),
@@ -194,8 +182,17 @@ export class MockMailGroupService implements IMailGroupService {
     saveArr(REQUESTS_KEY, requests)
   }
 
-  async getMyJoinRequests(userId: string): Promise<JoinRequest[]> {
+  async getMyJoinRequests(userId?: string): Promise<JoinRequest[]> {
+    if (!userId) return []
     return loadArr<JoinRequest>(REQUESTS_KEY).filter((r) => r.userId === userId)
+  }
+
+  async approveJoinRequestInGroup(_groupId: string, reqId: string): Promise<void> {
+    return this.approveJoinRequest(reqId)
+  }
+
+  async rejectJoinRequestInGroup(_groupId: string, reqId: string): Promise<void> {
+    return this.rejectJoinRequest(reqId)
   }
 
   async getUsers(): Promise<User[]> {
@@ -206,5 +203,17 @@ export class MockMailGroupService implements IMailGroupService {
   async getUser(id: string): Promise<User | null> {
     const users = await this.getUsers()
     return users.find((u) => u.id === id) ?? null
+  }
+
+  async searchUsers(_q: string): Promise<User[]> {
+    return []
+  }
+
+  async sendMail(_groupId: string, _subject: string, _bodyHtml: string): Promise<void> {
+    throw new Error('not implemented in mock')
+  }
+
+  async getMailHistory(_groupId: string): Promise<Array<{ id: string; subject: string; recipientCount: number; status: string; createdAt: string; sentAt?: string }>> {
+    return []
   }
 }

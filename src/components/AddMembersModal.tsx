@@ -77,8 +77,9 @@ export default function AddMembersModal({ open, group, onClose, onAdded }: Props
       const emails = collectEmails()
       const userIds = [...pickedIds]
       for (const email of emails) {
-        const user = await mailGroupService.findOrCreateUserByEmail(email)
-        if (!userIds.includes(user.id)) userIds.push(user.id)
+        const results = await mailGroupService.searchUsers(email)
+        const user = results[0]
+        if (user && !userIds.includes(user.id)) userIds.push(user.id)
       }
       if (userIds.length === 0) {
         message.warning('No members to add')

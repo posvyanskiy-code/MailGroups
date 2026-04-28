@@ -42,7 +42,7 @@ export default function GroupCreate() {
         visibility: values.visibility as 'Public' | 'Private',
         hideFromAddressLists: values.hideFromAddressLists as boolean,
       }
-      const group = await mailGroupService.createGroup(input, currentUser.id)
+      const group = await mailGroupService.createGroup(input, currentUser?.id)
       message.success(`Group "${group.displayName}" created — ${group.mail}`)
       navigate(`/groups/${group.id}`)
     } finally {

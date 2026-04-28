@@ -41,7 +41,7 @@ describe('MockMailGroupService', () => {
       'user-1',
     )
     expect(group.mail).toBe('test-group@company.com')
-    expect(group.ownerId).toBe('user-1')
+    expect(group.ownerIds[0]).toBe('user-1')
     expect(group.memberIds).toContain('user-1')
 
     const all = await svc.getGroups()
